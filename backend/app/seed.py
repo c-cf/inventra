@@ -18,7 +18,7 @@ ADMIN_PASSWORD = "admin123"  # development only; change before any real deployme
 SAMPLE_PRODUCTS: list[dict] = [
     {"sku": "KB-001", "name": "Mechanical Keyboard", "price": 89.0, "quantity": 25},
     {"sku": "MS-001", "name": "Wireless Mouse", "price": 29.5, "quantity": 40},
-    {"sku": "MN-027", "name": "27\" Monitor", "price": 249.0, "quantity": 8},
+    {"sku": "MN-027", "name": '27" Monitor', "price": 249.0, "quantity": 8},
     {"sku": "HS-001", "name": "USB-C Hub", "price": 39.9, "quantity": 0},
 ]
 

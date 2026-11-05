@@ -1,6 +1,9 @@
 import os
 from dataclasses import dataclass
 
+# Long enough to satisfy PyJWT's 32-byte HS256 minimum; override in real deployments.
+DEV_SECRET_KEY = "dev-only-secret-change-me-before-deploying-0000"
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -18,7 +21,7 @@ def get_settings() -> Settings:
     """
     return Settings(
         db_path=os.getenv("INVENTRA_DB_PATH", "inventra.db"),
-        secret_key=os.getenv("INVENTRA_SECRET_KEY", "dev-only-secret-change-me-before-deploying-0000"),
+        secret_key=os.getenv("INVENTRA_SECRET_KEY", DEV_SECRET_KEY),
         token_ttl_minutes=int(os.getenv("INVENTRA_TOKEN_TTL_MINUTES", "60")),
         cors_origins=[
             origin.strip()
