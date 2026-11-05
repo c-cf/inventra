@@ -23,38 +23,48 @@ export type Product = {
   created_at: string;
 };
 
-export async function login(username: string, password: string): Promise<TokenResponse> {
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+type RequestOptions = {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+  token?: string;
+};
+
+/** Single place that talks to the backend: builds headers, raises ApiError on non-2xx. */
+async function request<T>(path: string, { method = "GET", body, token }: RequestOptions = {}): Promise<T> {
+  const headers = new Headers();
+  if (body !== undefined) headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`${API_URL}${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
+
   if (!response.ok) {
-    let detail = `Request failed with status ${response.status}`;
-    try {
-      const body = await response.json();
-      if (typeof body?.detail === "string") detail = body.detail;
-    } catch {
-      // non-JSON error body; keep the generic message
-    }
-    throw new ApiError(response.status, detail);
+    throw new ApiError(response.status, await errorDetail(response));
   }
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
-export async function fetchProducts(token: string): Promise<Product[]> {
-  const response = await fetch(`${API_URL}/products`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    let detail = `Request failed with status ${response.status}`;
-    try {
-      const body = await response.json();
-      if (typeof body?.detail === "string") detail = body.detail;
-    } catch {
-      // non-JSON error body; keep the generic message
-    }
-    throw new ApiError(response.status, detail);
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const body = await response.json();
+    if (typeof body?.detail === "string") return body.detail;
+  } catch {
+    // non-JSON error body; fall through to the generic message
   }
-  return response.json();
+  return `Request failed with status ${response.status}`;
+}
+
+export function login(username: string, password: string): Promise<TokenResponse> {
+  return request<TokenResponse>("/auth/login", { method: "POST", body: { username, password } });
+}
+
+export function fetchMe(token: string): Promise<User> {
+  return request<User>("/auth/me", { token });
+}
+
+export function fetchProducts(token: string): Promise<Product[]> {
+  return request<Product[]>("/products", { token });
 }
