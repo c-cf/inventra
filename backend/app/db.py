@@ -4,24 +4,7 @@ from pathlib import Path
 
 from app.config import get_settings
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT    NOT NULL UNIQUE,
-    password_hash TEXT    NOT NULL,
-    role          TEXT    NOT NULL DEFAULT 'staff',
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS products (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    sku        TEXT    NOT NULL UNIQUE,
-    name       TEXT    NOT NULL,
-    price      REAL    NOT NULL CHECK (price >= 0),
-    quantity   INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-"""
+SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
 def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
@@ -36,8 +19,8 @@ def connect(db_path: str | Path | None = None) -> sqlite3.Connection:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create any missing tables. Safe to call repeatedly."""
-    conn.executescript(SCHEMA)
+    """Apply schema.sql. Safe to call repeatedly; statements are idempotent."""
+    conn.executescript(SCHEMA_PATH.read_text())
     conn.commit()
 
 
