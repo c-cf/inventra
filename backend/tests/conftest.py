@@ -34,3 +34,10 @@ def user(db):
     return users.create(
         db, username="alice", password_hash=hash_password("secret123"), role="admin"
     )
+
+
+@pytest.fixture()
+def auth_headers(user):
+    from app.security import create_access_token
+
+    return {"Authorization": f"Bearer {create_access_token(str(user.id))}"}
