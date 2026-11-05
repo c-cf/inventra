@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 
-from app.deps import DbConn
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.deps import CurrentUser, DbConn
+from app.schemas.auth import LoginRequest, TokenResponse, UserOut
 from app.security import create_access_token
 from app.services import auth as auth_service
 
@@ -17,3 +17,8 @@ def login(payload: LoginRequest, conn: DbConn) -> TokenResponse:
             detail="Invalid username or password",
         )
     return TokenResponse(access_token=create_access_token(str(user.id)))
+
+
+@router.get("/me", response_model=UserOut)
+def me(current_user: CurrentUser) -> UserOut:
+    return UserOut(id=current_user.id, username=current_user.username, role=current_user.role)
