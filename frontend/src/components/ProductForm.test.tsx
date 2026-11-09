@@ -75,4 +75,12 @@ describe("ProductForm", () => {
     expect(createProductMock).not.toHaveBeenCalled();
   });
 
+  it("requires a name and does not call the API without one", async () => {
+    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+
+    await fillAndSubmit({ sku: "MS-002", price: "25", quantity: "10" });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/name is required/i);
+    expect(createProductMock).not.toHaveBeenCalled();
+  });
 });
