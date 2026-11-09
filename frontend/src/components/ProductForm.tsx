@@ -23,6 +23,7 @@ export function ProductForm({ token, onCreated }: ProductFormProps) {
 
   function validate(): string | null{
     if (sku.trim() === "") return "SKU is required.";
+    if (name.trim() === "") return "Name is required.";
     if (Number(price) < 0) return "Price must be 0 or more.";
     if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) return "Quantity must be a whole number of 0 or more.";
     return null;
