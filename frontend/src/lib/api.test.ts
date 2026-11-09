@@ -89,4 +89,28 @@ describe("createProduct", () => {
     expect(init.body).toBe(JSON.stringify(input));
     expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
   });
+
+  it("turns FastAPI validation errors into a readable message", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            detail: [
+              { loc: ["body", "price"], msg: "Input should be greater than or equal to 0", type: "greater_than_equal" },
+              { loc: ["body", "sku"], msg: "String should have at least 1 character", type: "string_too_short" },
+            ],
+          },
+          422,
+        ),
+      ),
+    );
+
+    const promise = createProduct("tok", { sku: "", name: "Mouse", price: -1, quantity: 0 });
+
+    await expect(promise).rejects.toMatchObject({
+      status: 422,
+      message: "price: Input should be greater than or equal to 0; sku: String should have at least 1 character",
+    });
+  });
 });
