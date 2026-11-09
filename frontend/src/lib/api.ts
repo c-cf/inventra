@@ -68,3 +68,14 @@ export function fetchMe(token: string): Promise<User> {
 export function fetchProducts(token: string): Promise<Product[]> {
   return request<Product[]>("/products", { token });
 }
+
+export type ProductInput = {
+  sku: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
+
+export function createProduct(token: string, input: ProductInput): Promise<Product> {
+  return request<Product>("/products", { method: "POST", body: input, token });
+}
