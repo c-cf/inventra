@@ -4,18 +4,25 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
+import { ProductForm } from "@/components/ProductForm";
 import { ProductTable } from "@/components/ProductTable";
 import { ApiError, fetchMe, fetchProducts, type Product, type User } from "@/lib/api";
 import { clearToken, getToken } from "@/lib/auth";
 
 type PageState =
   | { status: "loading" }
-  | { status: "ready"; user: User; products: Product[] }
+  | { status: "ready"; user: User; products: Product[]; token: string }
   | { status: "error"; message: string };
 
 export default function ProductsPage() {
   const router = useRouter();
   const [state, setState] = useState<PageState>({ status: "loading" });
+
+  function handleCreated(product: Product) {
+    setState((prev) =>
+      prev.status === "ready" ? { ...prev, products: [...prev.products, product] } : prev,
+    );
+  }
 
   useEffect(() => {
     const token = getToken();
@@ -27,7 +34,7 @@ export default function ProductsPage() {
     let cancelled = false;
     Promise.all([fetchMe(token), fetchProducts(token)])
       .then(([user, products]) => {
-        if (!cancelled) setState({ status: "ready", user, products });
+        if (!cancelled) setState({ status: "ready", user, products, token });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -59,6 +66,7 @@ export default function ProductsPage() {
           {state.status === "ready" && (
             <p className="text-sm text-zinc-500">{state.products.length} items</p>
           )}
+          
         </div>
 
         {state.status === "loading" && <p className="text-sm text-zinc-500">Loading…</p>}
@@ -70,6 +78,7 @@ export default function ProductsPage() {
             {state.message}
           </p>
         )}
+        {state.status === "ready" && (<ProductForm token={state.token} onCreated={handleCreated} />)}
         {state.status === "ready" && <ProductTable products={state.products} />}
       </main>
     </>
