@@ -46,6 +46,7 @@ describe("ProductForm", () => {
       quantity: 10,
     });
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
+  });
 
   it("requires a SKU and does not call the API without one", async () => {
     render(<ProductForm token="tok" onCreated={vi.fn()} />);
@@ -54,7 +55,7 @@ describe("ProductForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/sku is required/i);
     expect(createProductMock).not.toHaveBeenCalled();
-    });
+  });
 
   it("rejects a negative price", async () => {
     render(<ProductForm token="tok" onCreated={vi.fn()} />);
@@ -63,7 +64,7 @@ describe("ProductForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/price must be 0 or more/i);
     expect(createProductMock).not.toHaveBeenCalled();
-    });
+  });
 
   it("rejects a quantity that is not a whole number", async () => {
     render(<ProductForm token="tok" onCreated={vi.fn()} />);
@@ -72,6 +73,14 @@ describe("ProductForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/quantity must be a whole number/i);
     expect(createProductMock).not.toHaveBeenCalled();
-    });
+  });
+
+  it("requires a name and does not call the API without one", async () => {
+    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+
+    await fillAndSubmit({ sku: "MS-002", price: "25", quantity: "10" });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/name is required/i);
+    expect(createProductMock).not.toHaveBeenCalled();
   });
 });
