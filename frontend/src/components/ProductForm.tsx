@@ -2,7 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 
-import { createProduct, type Product } from "@/lib/api";
+import { ApiError, createProduct, type Product } from "@/lib/api";
 
 type ProductFormProps = {
   token: string;
@@ -36,13 +36,21 @@ export function ProductForm({ token, onCreated }: ProductFormProps) {
     setError(problem);
     if (problem) return;
 
-    const product = await createProduct(token, {
-      sku,
-      name,
-      price: Number(price),
-      quantity: Number(quantity),
-    });
-    onCreated(product);
+    try {
+      const product = await createProduct(token, {
+        sku,
+        name,
+        price: Number(price),
+        quantity: Number(quantity),
+      });
+      onCreated(product);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not reach the server. Is the backend running?",
+      );
+    }
   }
 
   return (
