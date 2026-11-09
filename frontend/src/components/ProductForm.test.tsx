@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductForm } from "@/components/ProductForm";
-import { createProduct } from "@/lib/api";
+import { ApiError, createProduct } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -82,5 +82,16 @@ describe("ProductForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/name is required/i);
     expect(createProductMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the backend's message when the SKU already exists", async () => {
+    createProductMock.mockRejectedValue(new ApiError(409, "SKU already exists"));
+    const onCreated = vi.fn();
+    render(<ProductForm token="tok" onCreated={onCreated} />);
+
+    await fillAndSubmit({ sku: "KB-001", name: "Keyboard", price: "89", quantity: "5" });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("SKU already exists");
+    expect(onCreated).not.toHaveBeenCalled();
   });
 });
