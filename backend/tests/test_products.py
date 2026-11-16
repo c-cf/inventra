@@ -83,3 +83,20 @@ def test_create_product_validates_payload(client, auth_headers, overrides):
     response = client.post("/products", json={**PAYLOAD, **overrides}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_update_product_changes_the_given_fields(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(
+        f"/products/{created['id']}",
+        json={"name": "Super Widget", "price": 12.5},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Super Widget"
+    assert body["price"] == 12.5
+    assert body["sku"] == PAYLOAD["sku"]
+    assert body["quantity"] == PAYLOAD["quantity"]
