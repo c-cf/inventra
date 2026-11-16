@@ -44,3 +44,14 @@ def get_by_id(conn: sqlite3.Connection, product_id: int) -> Product | None:
 def list_all(conn: sqlite3.Connection) -> list[Product]:
     rows = conn.execute("SELECT * FROM products ORDER BY id").fetchall()
     return [_to_product(row) for row in rows]
+
+
+def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | None:
+    if fields:
+        assignments = ", ".join(f"{column} = ?" for column in fields)
+        conn.execute(
+            f"UPDATE products SET {assignments} WHERE id = ?",
+            (*fields.values(), product_id),
+        )
+        conn.commit()
+    return get_by_id(conn, product_id)
