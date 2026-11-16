@@ -100,3 +100,10 @@ def test_update_product_changes_the_given_fields(client, auth_headers):
     assert body["price"] == 12.5
     assert body["sku"] == PAYLOAD["sku"]
     assert body["quantity"] == PAYLOAD["quantity"]
+
+
+def test_update_missing_product_returns_404(client, auth_headers):
+    response = client.patch("/products/999", json={"name": "Anything"}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Product not found"
