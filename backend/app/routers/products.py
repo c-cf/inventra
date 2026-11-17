@@ -42,6 +42,7 @@ def adjust_stock(
             conn,
             product_id,
             payload.change,
+            payload.reason,
         )
     except products.InsufficientStockError:
         raise HTTPException(
@@ -56,3 +57,22 @@ def adjust_stock(
         )
 
     return ProductOut.model_validate(product)
+
+
+@router.get("/{product_id}/movements")
+def get_stock_movements(
+    product_id: int,
+    conn: DbConn,
+    _: CurrentUser,
+):
+    product = products.get_by_id(conn, product_id)
+
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
+
+    movements = products.get_stock_movements(conn, product_id)
+
+    return [dict(row) for row in movements]

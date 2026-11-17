@@ -8,7 +8,7 @@ class DuplicateSkuError(Exception):
 
 class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
-    
+
 def _to_product(row: sqlite3.Row) -> Product:
     return Product(
         id=row["id"],
@@ -52,6 +52,7 @@ def adjust_stock(
     conn: sqlite3.Connection,
     product_id: int,
     change: int,
+    reason: str,
 ) -> Product | None:
     cursor = conn.execute(
         """
@@ -66,8 +67,30 @@ def adjust_stock(
     if cursor.rowcount == 0:
         if get_by_id(conn, product_id) is None:
             return None
-
         raise InsufficientStockError()
+
+    conn.execute(
+        """
+        INSERT INTO stock_movements (product_id, change, reason)
+        VALUES (?, ?, ?)
+        """,
+        (product_id, change, reason),
+    )
 
     conn.commit()
     return get_by_id(conn, product_id)
+
+
+def get_stock_movements(
+    conn: sqlite3.Connection,
+    product_id: int,
+):
+    return conn.execute(
+        """
+        SELECT id, product_id, change, reason, created_at
+        FROM stock_movements
+        WHERE product_id = ?
+        ORDER BY id ASC
+        """,
+        (product_id,),
+    ).fetchall()
