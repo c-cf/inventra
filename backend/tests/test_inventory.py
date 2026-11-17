@@ -1,3 +1,4 @@
+import pytest
 
 def test_increase_stock(client, auth_headers):
     payload = {
@@ -119,3 +120,88 @@ def test_adjust_nonexistent_product(client, auth_headers):
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "adjustment",
+    [
+        {"change": 0, "reason": "restock"},
+        {"change": "abc", "reason": "restock"},
+        {"reason": "restock"},
+        {"change": 5},
+        {"change": 5, "reason": ""},
+    ],
+)
+def test_invalid_stock_adjustment(
+    client, auth_headers, adjustment
+):
+    payload = {
+        "sku": "SKU-INV-INVALID",
+        "name": "Test Product",
+        "price": 100.0,
+        "quantity": 10,
+    }
+
+    created = client.post(
+        "/products",
+        json=payload,
+        headers=auth_headers,
+    ).json()
+
+    product_id = created["id"]
+
+    response = client.post(
+        f"/products/{product_id}/adjust",
+        json=adjustment,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
+
+    response = client.get(
+        f"/products/{product_id}",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["quantity"] == 10
+
+
+def test_stock_adjustment_creates_movement(client, auth_headers):
+    payload = {
+        "sku": "SKU-INV-MOVE-001",
+        "name": "Movement Test",
+        "price": 100.0,
+        "quantity": 10,
+    }
+
+    created = client.post(
+        "/products",
+        json=payload,
+        headers=auth_headers,
+    )
+    assert created.status_code == 201
+    product_id = created.json()["id"]
+
+    response = client.post(
+        f"/products/{product_id}/adjust",
+        json={"change": 5, "reason": "restock"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["quantity"] == 15
+
+    history = client.get(
+        f"/products/{product_id}/movements",
+        headers=auth_headers,
+    )
+
+    assert history.status_code == 200
+
+    movements = history.json()
+    assert len(movements) == 1
+    assert movements[0]["product_id"] == product_id
+    assert movements[0]["change"] == 5
+    assert movements[0]["reason"] == "restock"
+    assert "created_at" in movements[0]
