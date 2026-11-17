@@ -246,3 +246,34 @@ def test_failed_adjustment_does_not_create_movement(
 
     assert history.status_code == 200
     assert history.json() == []
+
+
+def test_get_low_stock_products(client, auth_headers):
+    products = [
+        {"sku": "LOW-001", "name": "Product A", "price": 100, "quantity": 2},
+        {"sku": "LOW-002", "name": "Product B", "price": 100, "quantity": 4},
+        {"sku": "LOW-003", "name": "Product C", "price": 100, "quantity": 5},
+        {"sku": "LOW-004", "name": "Product D", "price": 100, "quantity": 10},
+    ]
+
+    for product in products:
+        response = client.post(
+            "/products",
+            json=product,
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+
+    response = client.get(
+        "/products?below=5",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+
+    result = response.json()
+    assert len(result) == 2
+    assert {item["sku"] for item in result} == {
+        "LOW-001",
+        "LOW-002",
+    }
