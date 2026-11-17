@@ -6,7 +6,9 @@ from app.models import Product
 class DuplicateSkuError(Exception):
     """Raised when inserting a product whose SKU already exists."""
 
-
+class InsufficientStockError(Exception):
+    """Raised when stock would become negative."""
+    
 def _to_product(row: sqlite3.Row) -> Product:
     return Product(
         id=row["id"],
@@ -62,7 +64,10 @@ def adjust_stock(
     )
 
     if cursor.rowcount == 0:
-        return None
+        if get_by_id(conn, product_id) is None:
+            return None
+
+        raise InsufficientStockError()
 
     conn.commit()
     return get_by_id(conn, product_id)

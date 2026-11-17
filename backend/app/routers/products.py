@@ -37,16 +37,22 @@ def adjust_stock(
     conn: DbConn,
     _: CurrentUser,
 ) -> ProductOut:
-    product = products.adjust_stock(
-        conn,
-        product_id,
-        payload.change,
-    )
+    try:
+        product = products.adjust_stock(
+            conn,
+            product_id,
+            payload.change,
+        )
+    except products.InsufficientStockError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Insufficient stock",
+        ) from None
 
     if product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found or stock adjustment failed",
+            detail="Product not found",
         )
 
     return ProductOut.model_validate(product)
