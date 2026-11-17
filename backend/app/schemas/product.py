@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ProductCreate(BaseModel):
@@ -20,4 +20,11 @@ class ProductOut(BaseModel):
 
 class StockAdjustment(BaseModel):
     change: int
-    reason: str
+    reason: str = Field(min_length=1)
+
+    @field_validator("change")
+    @classmethod
+    def validate_change(cls, value: int) -> int:
+        if value == 0:
+            raise ValueError("Stock change cannot be zero")
+        return value
