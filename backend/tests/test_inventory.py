@@ -205,3 +205,44 @@ def test_stock_adjustment_creates_movement(client, auth_headers):
     assert movements[0]["change"] == 5
     assert movements[0]["reason"] == "restock"
     assert "created_at" in movements[0]
+
+def test_failed_adjustment_does_not_create_movement(
+    client, auth_headers
+):
+    payload = {
+        "sku": "SKU-INV-MOVE-002",
+        "name": "Failed Movement Test",
+        "price": 100.0,
+        "quantity": 10,
+    }
+
+    created = client.post(
+        "/products",
+        json=payload,
+        headers=auth_headers,
+    )
+    assert created.status_code == 201
+    product_id = created.json()["id"]
+
+    response = client.post(
+        f"/products/{product_id}/adjust",
+        json={"change": -20, "reason": "sold"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 409
+
+    product = client.get(
+        f"/products/{product_id}",
+        headers=auth_headers,
+    )
+    assert product.status_code == 200
+    assert product.json()["quantity"] == 10
+
+    history = client.get(
+        f"/products/{product_id}/movements",
+        headers=auth_headers,
+    )
+
+    assert history.status_code == 200
+    assert history.json() == []
