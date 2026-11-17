@@ -17,3 +17,7 @@ class ProductOut(BaseModel):
     price: float
     quantity: int
     created_at: str
+
+class StockAdjustment(BaseModel):
+    change: int
+    reason: str

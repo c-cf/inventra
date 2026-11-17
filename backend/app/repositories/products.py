@@ -44,3 +44,25 @@ def get_by_id(conn: sqlite3.Connection, product_id: int) -> Product | None:
 def list_all(conn: sqlite3.Connection) -> list[Product]:
     rows = conn.execute("SELECT * FROM products ORDER BY id").fetchall()
     return [_to_product(row) for row in rows]
+
+
+def adjust_stock(
+    conn: sqlite3.Connection,
+    product_id: int,
+    change: int,
+) -> Product | None:
+    cursor = conn.execute(
+        """
+        UPDATE products
+        SET quantity = quantity + ?
+        WHERE id = ?
+          AND quantity + ? >= 0
+        """,
+        (change, product_id, change),
+    )
+
+    if cursor.rowcount == 0:
+        return None
+
+    conn.commit()
+    return get_by_id(conn, product_id)

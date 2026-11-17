@@ -3,8 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
-from app.schemas.product import ProductCreate, ProductOut
-
+from app.schemas.product import ProductCreate, ProductOut, StockAdjustment
 router = APIRouter(prefix="/products", tags=["products"])
 
 
@@ -29,4 +28,25 @@ def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
     product = products.get_by_id(conn, product_id)
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return ProductOut.model_validate(product)
+
+@router.post("/{product_id}/adjust", response_model=ProductOut)
+def adjust_stock(
+    product_id: int,
+    payload: StockAdjustment,
+    conn: DbConn,
+    _: CurrentUser,
+) -> ProductOut:
+    product = products.adjust_stock(
+        conn,
+        product_id,
+        payload.change,
+    )
+
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found or stock adjustment failed",
+        )
+
     return ProductOut.model_validate(product)
