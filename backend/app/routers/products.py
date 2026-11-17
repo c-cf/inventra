@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Query
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
@@ -8,9 +8,17 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 
 @router.get("", response_model=list[ProductOut])
-def list_products(conn: DbConn, _: CurrentUser) -> list[ProductOut]:
-    return [ProductOut.model_validate(p) for p in products.list_all(conn)]
+def list_products(
+    conn: DbConn,
+    _: CurrentUser,
+    below: int | None = Query(default=None, ge=0),
+) -> list[ProductOut]:
+    if below is not None:
+        items = products.get_low_stock_products(conn, below)
+    else:
+        items = products.list_all(conn)
 
+    return [ProductOut.model_validate(item) for item in items]
 
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, conn: DbConn, _: CurrentUser) -> ProductOut:
@@ -76,3 +84,4 @@ def get_stock_movements(
     movements = products.get_stock_movements(conn, product_id)
 
     return [dict(row) for row in movements]
+

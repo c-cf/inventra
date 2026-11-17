@@ -94,3 +94,20 @@ def get_stock_movements(
         """,
         (product_id,),
     ).fetchall()
+
+
+def get_low_stock_products(
+    conn: sqlite3.Connection,
+    below: int,
+) -> list[Product]:
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE quantity < ?
+        ORDER BY id ASC
+        """,
+        (below,),
+    ).fetchall()
+
+    return [_to_product(row) for row in rows]
