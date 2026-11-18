@@ -7,6 +7,7 @@ import { ApiError, createProduct, type Product } from "@/lib/api";
 type ProductFormProps = {
   token: string;
   onCreated: (product: Product) => void;
+  onUnauthorized?: () => void;
 };
 
 const inputClass =
@@ -14,7 +15,7 @@ const inputClass =
   "shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 " +
   "dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
-export function ProductForm({ token, onCreated }: ProductFormProps) {
+export function ProductForm({ token, onCreated, onUnauthorized }: ProductFormProps) {
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -46,6 +47,10 @@ export function ProductForm({ token, onCreated }: ProductFormProps) {
       });
       onCreated(product);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401 && onUnauthorized) {
+        onUnauthorized();
+        return;
+      }
       setError(
         err instanceof ApiError
           ? err.message
