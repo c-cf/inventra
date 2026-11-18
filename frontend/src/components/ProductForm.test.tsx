@@ -103,4 +103,19 @@ describe("ProductForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/price is required/i);
     expect(createProductMock).not.toHaveBeenCalled();
   });
+
+  it("trims the SKU and name before submitting", async () => {
+    const created = { id: 8, sku: "KB-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-18" };
+    createProductMock.mockResolvedValue(created);
+    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+
+    await fillAndSubmit({ sku: "  KB-002  ", name: "  Mouse  ", price: "25", quantity: "10" });
+
+    expect(createProductMock).toHaveBeenCalledWith("tok", {
+      sku: "KB-002",
+      name: "Mouse",
+      price: 25,
+      quantity: 10,
+    });
+  });
 });
