@@ -97,4 +97,24 @@ describe("ProductsPage", () => {
     expect(await screen.findByText("Mouse")).toBeInTheDocument();
     expect(screen.getByText("2 items")).toBeInTheDocument();
   });
+
+    it("sends the user to /login when creating a product is rejected with 401", async () => {
+    setToken("tok");
+    vi.mocked(fetchMe).mockResolvedValue(alice);
+    vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
+    vi.mocked(createProduct).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
+    render(<ProductsPage />);
+    await screen.findByText("Mechanical Keyboard");
+
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/sku/i), "MS-002");
+    await user.type(screen.getByLabelText(/name/i), "Mouse");
+    await user.type(screen.getByLabelText(/price/i), "25");
+    await user.type(screen.getByLabelText(/quantity/i), "10");
+    await user.click(screen.getByRole("button", { name: /add product/i }));
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    expect(getToken()).toBeNull();
+  });
 });
