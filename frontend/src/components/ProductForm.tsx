@@ -15,19 +15,21 @@ const inputClass =
   "shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 " +
   "dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
-export function ProductForm({ token, onCreated, onUnauthorized }: ProductFormProps) {
+export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<ProductFormProps>) {
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function validate(): string | null{
+  function validate(): string | null {
     if (sku.trim() === "") return "SKU is required.";
     if (name.trim() === "") return "Name is required.";
     if (price.trim() === "") return "Price is required.";
     if (Number(price) < 0) return "Price must be 0 or more.";
-    if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) return "Quantity must be a whole number of 0 or more.";
+    if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) {
+      return "Quantity must be a whole number of 0 or more.";
+    }
     return null;
   }
 
@@ -62,27 +64,61 @@ export function ProductForm({ token, onCreated, onUnauthorized }: ProductFormPro
   return (
     <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-4" noValidate>
       <div className="space-y-1">
-        <label htmlFor="sku" className="block text-sm font-medium">SKU</label>
-        <input id="sku" className={inputClass} value={sku} onChange={(e) => setSku(e.target.value)} />
+        <label htmlFor="sku" className="block text-sm font-medium">
+          SKU
+        </label>
+        <input
+          id="sku"
+          className={inputClass}
+          value={sku}
+          onChange={(e) => setSku(e.target.value)}
+        />
       </div>
       <div className="space-y-1">
-        <label htmlFor="name" className="block text-sm font-medium">Name</label>
-        <input id="name" className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
+        <label htmlFor="name" className="block text-sm font-medium">
+          Name
+        </label>
+        <input
+          id="name"
+          className={inputClass}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
       <div className="space-y-1">
-        <label htmlFor="price" className="block text-sm font-medium">Price</label>
-        <input id="price" type="number" step="0.01" min="0" className={inputClass} value={price} onChange={(e) => setPrice(e.target.value)} />
+        <label htmlFor="price" className="block text-sm font-medium">
+          Price
+        </label>
+        <input
+          id="price"
+          type="number"
+          step="0.01"
+          min="0"
+          className={inputClass}
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
       </div>
       <div className="space-y-1">
-        <label htmlFor="quantity" className="block text-sm font-medium">Quantity</label>
-        <input id="quantity" type="number" step="1" min="0" className={inputClass} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+        <label htmlFor="quantity" className="block text-sm font-medium">
+          Quantity
+        </label>
+        <input
+          id="quantity"
+          type="number"
+          step="1"
+          min="0"
+          className={inputClass}
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+        />
       </div>
-      {error &&(
+      {error && (
         <p
-            role ="alert"
-            className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-4 dark:bg-red-950 dark:text-red-300"
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-4 dark:bg-red-950 dark:text-red-300"
         >
-            {error}
+          {error}
         </p>
       )}
       <button

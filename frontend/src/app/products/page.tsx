@@ -71,7 +71,6 @@ export default function ProductsPage() {
           {state.status === "ready" && (
             <p className="text-sm text-zinc-500">{state.products.length} items</p>
           )}
-
         </div>
 
         {state.status === "loading" && <p className="text-sm text-zinc-500">Loading…</p>}
@@ -83,7 +82,13 @@ export default function ProductsPage() {
             {state.message}
           </p>
         )}
-        {state.status === "ready" && (<ProductForm token={state.token} onCreated={handleCreated} onUnauthorized={handleUnauthorized} />)}
+        {state.status === "ready" && (
+          <ProductForm
+            token={state.token}
+            onCreated={handleCreated}
+            onUnauthorized={handleUnauthorized}
+          />
+        )}
         {state.status === "ready" && <ProductTable products={state.products} />}
       </main>
     </>
