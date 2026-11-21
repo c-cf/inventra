@@ -70,8 +70,9 @@ export function fetchMe(token: string): Promise<User> {
   return request<User>("/auth/me", { token });
 }
 
-export function fetchProducts(token: string): Promise<Product[]> {
-  return request<Product[]>("/products", { token });
+export function fetchProducts(token: string, below?: number): Promise<Product[]> {
+  const query = below === undefined ? "" : `?below=${encodeURIComponent(below)}`;
+  return request<Product[]>(`/products${query}`, { token });
 }
 
 export type ProductInput = {
