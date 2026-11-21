@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, createProduct, fetchProducts, login } from "@/lib/api";
+import { ApiError, createProduct, fetchProducts, login, adjustStock, fetchStockMovements } from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -71,6 +71,18 @@ describe("fetchProducts", () => {
 
     await expect(fetchProducts("expired")).rejects.toMatchObject({ status: 401 });
   });
+
+  it("filters products using the below query parameter", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchProducts("tok", 5);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(url).toBe("http://localhost:8000/products?below=5");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+  });
 });
 
 describe("createProduct", () => {
@@ -112,5 +124,101 @@ describe("createProduct", () => {
       status: 422,
       message: "price: Input should be greater than or equal to 0; sku: String should have at least 1 character",
     });
+  });
+});
+
+describe("adjustStock", () => {
+  it("sends a stock adjustment with a reason", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: 3,
+        sku: "SKU-003",
+        name: "Keyboard",
+        price: 100,
+        quantity: 13,
+        created_at: "2026-11-21T00:00:00",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await adjustStock("tok", 3, 5, "restock");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(url).toBe("http://localhost:8000/products/3/adjust");
+    expect(init.method).toBe("POST");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(JSON.parse(init.body as string)).toEqual({
+      change: 5,
+      reason: "restock",
+    });
+  });
+
+  it("supports decreasing stock", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ id: 3, quantity: 6 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await adjustStock("tok", 3, -2, "sold");
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(JSON.parse(init.body as string)).toEqual({
+      change: -2,
+      reason: "sold",
+    });
+  });
+});
+
+describe("fetchStockMovements", () => {
+  it("fetches stock movement history for a product", async () => {
+    const movements = [
+      {
+        id: 1,
+        product_id: 3,
+        change: 5,
+        reason: "restock",
+        created_at: "2026-11-21T10:00:00",
+      },
+      {
+        id: 2,
+        product_id: 3,
+        change: -2,
+        reason: "sold",
+        created_at: "2026-11-21T11:00:00",
+      },
+    ];
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(movements),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchStockMovements("tok", 3);
+
+    const [url, init] = fetchMock.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+
+    expect(url).toBe(
+      "http://localhost:8000/products/3/movements",
+    );
+    expect(new Headers(init.headers).get("authorization")).toBe(
+      "Bearer tok",
+    );
+    expect(result).toEqual(movements);
+  });
+
+  it("returns an empty array when there are no movements", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse([]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchStockMovements("tok", 3);
+
+    expect(result).toEqual([]);
   });
 });

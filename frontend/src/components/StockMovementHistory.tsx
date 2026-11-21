@@ -1,0 +1,159 @@
+
+"use client";
+
+import { useState } from "react";
+
+import {
+  ApiError,
+  fetchStockMovements,
+  type Product,
+  type StockMovement,
+} from "@/lib/api";
+
+type Props = {
+  token: string;
+  products: Product[];
+  onUnauthorized: () => void;
+};
+
+export function StockMovementHistory({
+  token,
+  products,
+  onUnauthorized,
+}: Props) {
+  const [productId, setProductId] = useState("");
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [searched, setSearched] = useState(false);
+
+  async function handleViewMovements() {
+    if (!productId) {
+      setError("Please select a product.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    setSearched(false);
+
+    try {
+      const result = await fetchStockMovements(
+        token,
+        Number(productId),
+      );
+
+      setMovements(result);
+      setSearched(true);
+    } catch (err) {
+      setMovements([]);
+
+      if (err instanceof ApiError && err.status === 401) {
+        onUnauthorized();
+        return;
+      }
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load stock movements.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <h2 className="text-lg font-semibold">
+        Stock Movement History
+      </h2>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1">
+          <label
+            htmlFor="movement-product"
+            className="mb-1 block text-sm font-medium"
+          >
+            Movement product
+          </label>
+
+          <select
+            id="movement-product"
+            value={productId}
+            onChange={(event) => {
+              setProductId(event.target.value);
+              setMovements([]);
+              setSearched(false);
+              setError("");
+            }}
+            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <option value="">Select a product</option>
+
+            {products.map((product) => (
+              <option key={product.id} value={product.id}>
+                {product.name} ({product.sku})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleViewMovements}
+          disabled={loading}
+          className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          {loading ? "Loading..." : "View Movements"}
+        </button>
+      </div>
+
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+
+      {searched && movements.length === 0 && (
+        <p className="text-sm text-zinc-500">
+          No stock movements found.
+        </p>
+      )}
+
+      {movements.length > 0 && (
+        <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
+          <table className="w-full text-sm">
+            <thead className="bg-zinc-50 text-left dark:bg-zinc-900">
+              <tr>
+                <th className="px-4 py-3">Change</th>
+                <th className="px-4 py-3">Reason</th>
+                <th className="px-4 py-3">Date</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {movements.map((movement) => (
+                <tr key={movement.id}>
+                  <td className="px-4 py-3 tabular-nums">
+                    {movement.change > 0
+                      ? `+${movement.change}`
+                      : movement.change}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {movement.reason}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {movement.created_at}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}

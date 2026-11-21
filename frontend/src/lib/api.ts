@@ -23,6 +23,14 @@ export type Product = {
   created_at: string;
 };
 
+export type StockMovement = {
+  id: number;
+  product_id: number;
+  change: number;
+  reason: string;
+  created_at: string;
+};
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -70,8 +78,9 @@ export function fetchMe(token: string): Promise<User> {
   return request<User>("/auth/me", { token });
 }
 
-export function fetchProducts(token: string): Promise<Product[]> {
-  return request<Product[]>("/products", { token });
+export function fetchProducts(token: string, below?: number): Promise<Product[]> {
+  const query = below === undefined ? "" : `?below=${encodeURIComponent(below)}`;
+  return request<Product[]>(`/products${query}`, { token });
 }
 
 export type ProductInput = {
@@ -83,4 +92,27 @@ export type ProductInput = {
 
 export function createProduct(token: string, input: ProductInput): Promise<Product> {
   return request<Product>("/products", { method: "POST", body: input, token });
+}
+
+export function adjustStock(
+  token: string,
+  productId: number,
+  change: number,
+  reason: string,
+): Promise<Product> {
+  return request<Product>(`/products/${productId}/adjust`, {
+    method: "POST",
+    token,
+    body: { change, reason },
+  });
+}
+
+export function fetchStockMovements(
+  token: string,
+  productId: number,
+): Promise<StockMovement[]> {
+  return request<StockMovement[]>(
+    `/products/${productId}/movements`,
+    { token },
+  );
 }
