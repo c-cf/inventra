@@ -40,6 +40,7 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
     const problem = validate();
     setError(problem);
     if (problem) return;
+
     setPending(true);
     try {
       const product = await createProduct(token, {
