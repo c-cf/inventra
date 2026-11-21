@@ -21,6 +21,7 @@ def list_products(
 
     return [ProductOut.model_validate(item) for item in items]
 
+
 @router.post("", response_model=ProductOut, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, conn: DbConn, _: CurrentUser) -> ProductOut:
     try:
@@ -38,6 +39,7 @@ def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return ProductOut.model_validate(product)
+
 
 @router.post("/{product_id}/adjust", response_model=ProductOut)
 def adjust_stock(
@@ -85,4 +87,3 @@ def get_stock_movements(
     movements = products.get_stock_movements(conn, product_id)
 
     return [dict(row) for row in movements]
-

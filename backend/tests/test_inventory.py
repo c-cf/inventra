@@ -38,6 +38,7 @@ def test_increase_stock(client, auth_headers):
     assert response.status_code == 200
     assert response.json()["quantity"] == 15
 
+
 def test_decrease_stock(client, auth_headers):
     payload = {
         "sku": "SKU-INV-002",
@@ -46,9 +47,7 @@ def test_decrease_stock(client, auth_headers):
         "quantity": 10,
     }
 
-    created = client.post(
-        "/products", json=payload, headers=auth_headers
-    ).json()
+    created = client.post("/products", json=payload, headers=auth_headers).json()
 
     response = client.post(
         f"/products/{created['id']}/adjust",
@@ -68,9 +67,7 @@ def test_decrease_stock_to_zero(client, auth_headers):
         "quantity": 10,
     }
 
-    created = client.post(
-        "/products", json=payload, headers=auth_headers
-    ).json()
+    created = client.post("/products", json=payload, headers=auth_headers).json()
 
     response = client.post(
         f"/products/{created['id']}/adjust",
@@ -90,9 +87,7 @@ def test_insufficient_stock(client, auth_headers):
         "quantity": 10,
     }
 
-    created = client.post(
-        "/products", json=payload, headers=auth_headers
-    ).json()
+    created = client.post("/products", json=payload, headers=auth_headers).json()
 
     product_id = created["id"]
 
@@ -133,9 +128,7 @@ def test_adjust_nonexistent_product(client, auth_headers):
         {"change": 5, "reason": ""},
     ],
 )
-def test_invalid_stock_adjustment(
-    client, auth_headers, adjustment
-):
+def test_invalid_stock_adjustment(client, auth_headers, adjustment):
     payload = {
         "sku": "SKU-INV-INVALID",
         "name": "Test Product",
@@ -207,9 +200,8 @@ def test_stock_adjustment_creates_movement(client, auth_headers):
     assert movements[0]["reason"] == "restock"
     assert "created_at" in movements[0]
 
-def test_failed_adjustment_does_not_create_movement(
-    client, auth_headers
-):
+
+def test_failed_adjustment_does_not_create_movement(client, auth_headers):
     payload = {
         "sku": "SKU-INV-MOVE-002",
         "name": "Failed Movement Test",

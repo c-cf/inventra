@@ -18,6 +18,7 @@ class ProductOut(BaseModel):
     quantity: int
     created_at: str
 
+
 class StockAdjustment(BaseModel):
     change: int
     reason: str = Field(min_length=1)

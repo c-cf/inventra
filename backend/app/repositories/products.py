@@ -6,8 +6,10 @@ from app.models import Product
 class DuplicateSkuError(Exception):
     """Raised when inserting a product whose SKU already exists."""
 
+
 class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
+
 
 def _to_product(row: sqlite3.Row) -> Product:
     return Product(
