@@ -308,7 +308,7 @@ it("displays stock movement history for a selected product", async () => {
       created_at: "2026-11-22T11:00:00",
     },
   ]);
-W
+
   render(<ProductsPage />);
 
   await screen.findByText("Mechanical Keyboard");
