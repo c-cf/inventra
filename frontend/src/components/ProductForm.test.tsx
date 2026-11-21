@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductForm } from "@/components/ProductForm";
-import { ApiError, createProduct } from "@/lib/api";
+import { ApiError, createProduct, type Product } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -117,5 +117,20 @@ describe("ProductForm", () => {
       price: 25,
       quantity: 10,
     });
+  });
+
+  it("disables the submit button while the request is in flight", async () => {
+    const created = { id: 9, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-22" };
+    let resolveCreate!: (value: Product) => void;
+    createProductMock.mockReturnValue(new Promise<Product>((resolve) => (resolveCreate = resolve)));
+    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+
+    await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "25", quantity: "10" });
+
+    expect(screen.getByRole("button", { name: /adding/i })).toBeDisabled();
+    resolveCreate(created);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /add product/i })).not.toBeDisabled(),
+    );
   });
 });
