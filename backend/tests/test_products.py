@@ -83,3 +83,76 @@ def test_create_product_validates_payload(client, auth_headers, overrides):
     response = client.post("/products", json={**PAYLOAD, **overrides}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_update_product_changes_the_given_fields(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(
+        f"/products/{created['id']}",
+        json={"name": "Super Widget", "price": 12.5},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Super Widget"
+    assert body["price"] == 12.5
+    assert body["sku"] == PAYLOAD["sku"]
+    assert body["quantity"] == PAYLOAD["quantity"]
+
+
+def test_update_missing_product_returns_404(client, auth_headers):
+    response = client.patch("/products/999", json={"name": "Anything"}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Product not found"
+
+
+def test_update_product_rejects_duplicate_sku(client, auth_headers):
+    client.post("/products", json=PAYLOAD, headers=auth_headers)
+    second = client.post(
+        "/products", json={**PAYLOAD, "sku": "SKU-002"}, headers=auth_headers
+    ).json()
+
+    response = client.patch(
+        f"/products/{second['id']}",
+        json={"sku": "SKU-001"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "SKU already exists"
+
+
+def test_update_product_rejects_quantity_changes(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(
+        f"/products/{created['id']}",
+        json={"quantity": 999},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"price": -1},
+        {"name": ""},
+        {"sku": ""},
+    ],
+)
+def test_update_product_validates_payload(client, auth_headers, payload):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(f"/products/{created['id']}", json=payload, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_update_product_requires_auth(client):
+    response = client.patch("/products/1", json={"name": "Anything"})
+
+    assert response.status_code == 401

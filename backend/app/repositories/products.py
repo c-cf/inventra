@@ -50,6 +50,22 @@ def list_all(conn: sqlite3.Connection) -> list[Product]:
     return [_to_product(row) for row in rows]
 
 
+def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | None:
+    if fields:
+        assignments = ", ".join(f"{column} = ?" for column in fields)
+        try:
+            conn.execute(
+                f"UPDATE products SET {assignments} WHERE id = ?",
+                (*fields.values(), product_id),
+            )
+        except sqlite3.IntegrityError as exc:
+            if "products.sku" in str(exc):
+                raise DuplicateSkuError(fields["sku"]) from exc
+            raise
+        conn.commit()
+    return get_by_id(conn, product_id)
+
+
 def adjust_stock(
     conn: sqlite3.Connection,
     product_id: int,

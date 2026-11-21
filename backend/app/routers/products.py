@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
-from app.schemas.product import ProductCreate, ProductOut, StockAdjustment
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, StockAdjustment
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -36,6 +36,21 @@ def create_product(payload: ProductCreate, conn: DbConn, _: CurrentUser) -> Prod
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
     product = products.get_by_id(conn, product_id)
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return ProductOut.model_validate(product)
+
+
+@router.patch("/{product_id}", response_model=ProductOut)
+def update_product(
+    product_id: int, payload: ProductUpdate, conn: DbConn, _: CurrentUser
+) -> ProductOut:
+    try:
+        product = products.update(conn, product_id, **payload.model_dump(exclude_unset=True))
+    except DuplicateSkuError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="SKU already exists"
+        ) from None
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return ProductOut.model_validate(product)
