@@ -85,3 +85,16 @@ export type ProductInput = {
 export function createProduct(token: string, input: ProductInput): Promise<Product> {
   return request<Product>("/products", { method: "POST", body: input, token });
 }
+
+export function adjustStock(
+  token: string,
+  productId: number,
+  change: number,
+  reason: string,
+): Promise<Product> {
+  return request<Product>(`/products/${productId}/adjust`, {
+    method: "POST",
+    token,
+    body: { change, reason },
+  });
+}
