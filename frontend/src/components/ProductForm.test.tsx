@@ -133,4 +133,19 @@ describe("ProductForm", () => {
       expect(screen.getByRole("button", { name: /add product/i })).not.toBeDisabled(),
     );
   });
+
+  it("clears the form after a successful create", async () => {
+    const created = { id: 10, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-22" };
+    createProductMock.mockResolvedValue(created);
+    const onCreated = vi.fn();
+    render(<ProductForm token="tok" onCreated={onCreated} />);
+
+    await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "25", quantity: "10" });
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
+
+    expect(screen.getByLabelText(/sku/i)).toHaveValue("");
+    expect(screen.getByLabelText(/name/i)).toHaveValue("");
+    expect(screen.getByLabelText(/price/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/quantity/i)).toHaveValue(null);
+  });
 });
