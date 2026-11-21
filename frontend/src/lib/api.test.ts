@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, fetchProducts, login } from "@/lib/api";
+import { ApiError, createProduct, fetchProducts, login } from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -70,5 +70,47 @@ describe("fetchProducts", () => {
     );
 
     await expect(fetchProducts("expired")).rejects.toMatchObject({ status: 401 });
+  });
+});
+
+describe("createProduct", () => {
+  it("posts the product with the bearer token and returns the created product", async () => {
+    const created = { id: 7, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-09" };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(created, 201));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const input = { sku: "MS-002", name: "Mouse", price: 25, quantity: 10 };
+    const result = await createProduct("tok", input);
+
+    expect(result).toEqual(created);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://localhost:8000/products");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify(input));
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+  });
+
+  it("turns FastAPI validation errors into a readable message", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(
+          {
+            detail: [
+              { loc: ["body", "price"], msg: "Input should be greater than or equal to 0", type: "greater_than_equal" },
+              { loc: ["body", "sku"], msg: "String should have at least 1 character", type: "string_too_short" },
+            ],
+          },
+          422,
+        ),
+      ),
+    );
+
+    const promise = createProduct("tok", { sku: "", name: "Mouse", price: -1, quantity: 0 });
+
+    await expect(promise).rejects.toMatchObject({
+      status: 422,
+      message: "price: Input should be greater than or equal to 0; sku: String should have at least 1 character",
+    });
   });
 });
