@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
 from app.schemas.product import ProductCreate, ProductOut, StockAdjustment
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 

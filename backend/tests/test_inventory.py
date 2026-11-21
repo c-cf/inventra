@@ -1,5 +1,6 @@
 import pytest
 
+
 def test_increase_stock(client, auth_headers):
     payload = {
         "sku": "SKU-INV-001",
