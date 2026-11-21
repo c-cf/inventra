@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { StockMovementHistory } from "@/components/StockMovementHistory";
 import { AppHeader } from "@/components/AppHeader";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductTable } from "@/components/ProductTable";
@@ -291,6 +291,12 @@ export default function ProductsPage() {
           token={state.token}
           products={state.products}
           onAdjusted={handleAdjusted}
+          onUnauthorized={handleUnauthorized}
+        />
+
+        <StockMovementHistory
+          token={state.token}
+          products={state.products}
           onUnauthorized={handleUnauthorized}
         />
 
