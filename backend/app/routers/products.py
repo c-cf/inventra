@@ -36,7 +36,12 @@ def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
 def update_product(
     product_id: int, payload: ProductUpdate, conn: DbConn, _: CurrentUser
 ) -> ProductOut:
-    product = products.update(conn, product_id, **payload.model_dump(exclude_unset=True))
+    try:
+        product = products.update(conn, product_id, **payload.model_dump(exclude_unset=True))
+    except DuplicateSkuError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="SKU already exists"
+        ) from None
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return ProductOut.model_validate(product)
