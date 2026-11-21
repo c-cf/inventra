@@ -23,6 +23,14 @@ export type Product = {
   created_at: string;
 };
 
+export type StockMovement = {
+  id: number;
+  product_id: number;
+  change: number;
+  reason: string;
+  created_at: string;
+};
+
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
@@ -97,4 +105,14 @@ export function adjustStock(
     token,
     body: { change, reason },
   });
+}
+
+export function fetchStockMovements(
+  token: string,
+  productId: number,
+): Promise<StockMovement[]> {
+  return request<StockMovement[]>(
+    `/products/${productId}/movements`,
+    { token },
+  );
 }
