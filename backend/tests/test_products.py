@@ -134,3 +134,25 @@ def test_update_product_rejects_quantity_changes(client, auth_headers):
         headers=auth_headers,
     )
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"price": -1},
+        {"name": ""},
+        {"sku": ""},
+    ],
+)
+def test_update_product_validates_payload(client, auth_headers, payload):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(f"/products/{created['id']}", json=payload, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_update_product_requires_auth(client):
+    response = client.patch("/products/1", json={"name": "Anything"})
+
+    assert response.status_code == 401
