@@ -9,6 +9,8 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     sku: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=1, max_length=200)
     price: float | None = Field(default=None, ge=0)
