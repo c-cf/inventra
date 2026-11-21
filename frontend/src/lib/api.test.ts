@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, createProduct, fetchProducts, login } from "@/lib/api";
+import { ApiError, createProduct, fetchProducts, login, adjustStock } from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -123,6 +123,50 @@ describe("createProduct", () => {
     await expect(promise).rejects.toMatchObject({
       status: 422,
       message: "price: Input should be greater than or equal to 0; sku: String should have at least 1 character",
+    });
+  });
+});
+
+describe("adjustStock", () => {
+  it("sends a stock adjustment with a reason", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: 3,
+        sku: "SKU-003",
+        name: "Keyboard",
+        price: 100,
+        quantity: 13,
+        created_at: "2026-11-21T00:00:00",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await adjustStock("tok", 3, 5, "restock");
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(url).toBe("http://localhost:8000/products/3/adjust");
+    expect(init.method).toBe("POST");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(JSON.parse(init.body as string)).toEqual({
+      change: 5,
+      reason: "restock",
+    });
+  });
+
+  it("supports decreasing stock", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ id: 3, quantity: 6 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await adjustStock("tok", 3, -2, "sold");
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(JSON.parse(init.body as string)).toEqual({
+      change: -2,
+      reason: "sold",
     });
   });
 });
