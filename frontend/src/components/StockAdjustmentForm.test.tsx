@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { StockAdjustmentForm } from "@/components/StockAdjustmentForm";
+import { StockAdjustmentForm } from "./StockAdjustmentForm";
 import { adjustStock, ApiError } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
