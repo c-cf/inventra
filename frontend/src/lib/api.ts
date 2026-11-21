@@ -51,6 +51,11 @@ async function errorDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
     if (typeof body?.detail === "string") return body.detail;
+    if (Array.isArray(body?.detail)) {
+      return body.detail
+        .map((item: { loc: unknown[]; msg: string }) => `${item.loc.at(-1)}: ${item.msg}`)
+        .join("; ");
+    }
   } catch {
     // non-JSON error body; fall through to the generic message
   }
@@ -67,4 +72,15 @@ export function fetchMe(token: string): Promise<User> {
 
 export function fetchProducts(token: string): Promise<Product[]> {
   return request<Product[]>("/products", { token });
+}
+
+export type ProductInput = {
+  sku: string;
+  name: string;
+  price: number;
+  quantity: number;
+};
+
+export function createProduct(token: string, input: ProductInput): Promise<Product> {
+  return request<Product>("/products", { method: "POST", body: input, token });
 }
