@@ -21,6 +21,7 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   function validate(): string | null {
     if (sku.trim() === "") return "SKU is required.";
@@ -40,6 +41,7 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
     setError(problem);
     if (problem) return;
 
+    setPending(true);
     try {
       const product = await createProduct(token, {
         sku: sku.trim(),
@@ -48,6 +50,10 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
         quantity: Number(quantity),
       });
       onCreated(product);
+      setSku("");
+      setName("");
+      setPrice("");
+      setQuantity("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401 && onUnauthorized) {
         onUnauthorized();
@@ -58,6 +64,8 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
           ? err.message
           : "Could not reach the server. Is the backend running?",
       );
+    } finally {
+      setPending(false);
     }
   }
 
@@ -123,9 +131,10 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
       )}
       <button
         type="submit"
+        disabled={pending}
         className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:col-span-4 sm:justify-self-end"
       >
-        Add product
+        {pending ? "Adding…" : "Add product"}
       </button>
     </form>
   );
