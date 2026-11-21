@@ -49,6 +49,10 @@ export function ProductForm({ token, onCreated, onUnauthorized }: Readonly<Produ
         quantity: Number(quantity),
       });
       onCreated(product);
+      setSku("");
+      setName("");
+      setPrice("");
+      setQuantity("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 401 && onUnauthorized) {
         onUnauthorized();
