@@ -10,6 +10,7 @@ import {
   createProduct,
   fetchMe,
   fetchProducts,
+  fetchStockMovements,
 } from "@/lib/api";
 import { getToken, setToken } from "@/lib/auth";
 
@@ -28,6 +29,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   fetchProducts: vi.fn(),
   createProduct: vi.fn(),
   adjustStock: vi.fn(),
+  fetchStockMovements: vi.fn(),
 }));
 
 const alice = {
@@ -51,6 +53,7 @@ beforeEach(() => {
   router.replace.mockReset();
   router.push.mockReset();
 
+  vi.mocked(fetchStockMovements).mockReset();
   vi.mocked(fetchMe).mockReset();
   vi.mocked(fetchProducts).mockReset();
   vi.mocked(createProduct).mockReset();
@@ -280,4 +283,53 @@ describe("ProductsPage", () => {
       await screen.findByText("30"),
     ).toBeInTheDocument();
   });
+});
+
+
+it("displays stock movement history for a selected product", async () => {
+  setToken("tok");
+
+  vi.mocked(fetchMe).mockResolvedValue(alice);
+  vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
+
+  vi.mocked(fetchStockMovements).mockResolvedValue([
+    {
+      id: 1,
+      product_id: 1,
+      change: 5,
+      reason: "restock",
+      created_at: "2026-11-22T10:00:00",
+    },
+    {
+      id: 2,
+      product_id: 1,
+      change: -2,
+      reason: "sold",
+      created_at: "2026-11-22T11:00:00",
+    },
+  ]);
+W
+  render(<ProductsPage />);
+
+  await screen.findByText("Mechanical Keyboard");
+
+  const user = userEvent.setup();
+
+  await user.selectOptions(
+    screen.getByLabelText("Movement product"),
+    "1",
+  );
+
+  await user.click(
+    screen.getByRole("button", { name: "View Movements" }),
+  );
+
+  await waitFor(() => {
+    expect(fetchStockMovements).toHaveBeenCalledWith("tok", 1);
+  });
+
+  expect(await screen.findByText("restock")).toBeInTheDocument();
+  expect(screen.getByText("sold")).toBeInTheDocument();
+  expect(screen.getByText("+5")).toBeInTheDocument();
+  expect(screen.getByText("-2")).toBeInTheDocument();
 });
