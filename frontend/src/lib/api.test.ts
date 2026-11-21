@@ -71,6 +71,18 @@ describe("fetchProducts", () => {
 
     await expect(fetchProducts("expired")).rejects.toMatchObject({ status: 401 });
   });
+
+  it("filters products using the below query parameter", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchProducts("tok", 5);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+    expect(url).toBe("http://localhost:8000/products?below=5");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+  });
 });
 
 describe("createProduct", () => {
