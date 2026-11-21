@@ -118,3 +118,33 @@ describe("ProductsPage", () => {
     expect(getToken()).toBeNull();
   });
 });
+
+  it("filters products by low stock threshold", async () => {
+    setToken("tok");
+    vi.mocked(fetchMe).mockResolvedValue(alice);
+    vi.mocked(fetchProducts)
+      .mockResolvedValueOnce([keyboard])
+      .mockResolvedValueOnce([]);
+
+    render(<ProductsPage />);
+    await screen.findByText("Mechanical Keyboard");
+
+    const user = userEvent.setup();
+
+    await user.type(
+      screen.getByLabelText("Low stock threshold"),
+      "5",
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Filter" }),
+    );
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenCalledWith("tok", 5);
+    });
+
+    expect(
+      await screen.findByText("No products yet."),
+    ).toBeInTheDocument();
+  });
