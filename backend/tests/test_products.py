@@ -123,3 +123,14 @@ def test_update_product_rejects_duplicate_sku(client, auth_headers):
 
     assert response.status_code == 409
     assert response.json()["detail"] == "SKU already exists"
+
+
+def test_update_product_rejects_quantity_changes(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(
+        f"/products/{created['id']}",
+        json={"quantity": 999},
+        headers=auth_headers,
+    )
+    assert response.status_code == 422
