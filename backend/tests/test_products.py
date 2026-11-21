@@ -107,3 +107,19 @@ def test_update_missing_product_returns_404(client, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Product not found"
+
+
+def test_update_product_rejects_duplicate_sku(client, auth_headers):
+    client.post("/products", json=PAYLOAD, headers=auth_headers)
+    second = client.post(
+        "/products", json={**PAYLOAD, "sku": "SKU-002"}, headers=auth_headers
+    ).json()
+
+    response = client.patch(
+        f"/products/{second['id']}",
+        json={"sku": "SKU-001"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "SKU already exists"
