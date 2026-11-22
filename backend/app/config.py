@@ -14,6 +14,7 @@ class Settings:
     login_max_attempts: int
     login_lockout_seconds: int
     login_max_attempts_per_client: int
+    cookie_secure: bool
 
 
 def _positive_int(name: str, default: str) -> int:
@@ -27,6 +28,19 @@ def _positive_int(name: str, default: str) -> int:
     return value
 
 
+def _cors_origins() -> list[str]:
+    origins = [
+        origin.strip()
+        for origin in os.getenv("INVENTRA_CORS_ORIGINS", "http://localhost:3000").split(",")
+        if origin.strip()
+    ]
+    if "*" in origins:
+        # CORS runs with credentials (the session cookie), so a wildcard would let any
+        # site read authenticated responses. List the frontend origins explicitly.
+        raise ValueError("INVENTRA_CORS_ORIGINS must list origins explicitly, not '*'")
+    return origins
+
+
 def get_settings() -> Settings:
     """Read configuration from the environment on every call.
 
@@ -37,12 +51,10 @@ def get_settings() -> Settings:
         db_path=os.getenv("INVENTRA_DB_PATH", "inventra.db"),
         secret_key=os.getenv("INVENTRA_SECRET_KEY", DEV_SECRET_KEY),
         token_ttl_minutes=_positive_int("INVENTRA_TOKEN_TTL_MINUTES", "60"),
-        cors_origins=[
-            origin.strip()
-            for origin in os.getenv("INVENTRA_CORS_ORIGINS", "http://localhost:3000").split(",")
-            if origin.strip()
-        ],
+        cors_origins=_cors_origins(),
         login_max_attempts=_positive_int("INVENTRA_LOGIN_MAX_ATTEMPTS", "5"),
         login_lockout_seconds=_positive_int("INVENTRA_LOGIN_LOCKOUT_SECONDS", "300"),
         login_max_attempts_per_client=_positive_int("INVENTRA_LOGIN_MAX_ATTEMPTS_PER_CLIENT", "20"),
+        # Send the session cookie over HTTPS only; turn on anywhere that is not plain localhost.
+        cookie_secure=os.getenv("INVENTRA_COOKIE_SECURE", "false").lower() in {"1", "true", "yes"},
     )

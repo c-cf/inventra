@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=get_settings().cors_origins,
+        allow_credentials=True,  # the browser sends the session cookie
         allow_methods=["*"],
         allow_headers=["*"],
         # Lets the frontend read the total behind a paginated product list.
