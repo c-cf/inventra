@@ -40,3 +40,14 @@ def test_seed_creates_a_staff_account_that_can_log_in(client, db):
         "/auth/login", json={"username": STAFF_USERNAME, "password": STAFF_PASSWORD}
     )
     assert response.status_code == 200
+
+
+def test_seed_skips_an_account_whose_username_exists_in_another_case(db):
+    from app.seed import STAFF_USERNAME
+
+    users.create(db, username=ADMIN_USERNAME.upper(), password_hash="x", role="admin")
+
+    seed(db)
+
+    assert users.get_by_username(db, ADMIN_USERNAME) is None
+    assert users.get_by_username(db, STAFF_USERNAME) is not None
