@@ -14,15 +14,6 @@ import {
 } from "@/lib/api";
 import { hardNavigate } from "@/lib/hardNavigate";
 
-const router = vi.hoisted(() => ({
-  replace: vi.fn(),
-  push: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => router,
-}));
-
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   fetchMe: vi.fn(),
@@ -49,9 +40,6 @@ const keyboard = {
 
 beforeEach(() => {
   window.localStorage.clear();
-
-  router.replace.mockReset();
-  router.push.mockReset();
 
   vi.mocked(fetchStockMovements).mockReset();
   vi.mocked(fetchMe).mockReset();
@@ -117,7 +105,7 @@ describe("ProductsPage", () => {
       /failed to fetch/i,
     );
 
-    expect(router.replace).not.toHaveBeenCalled();
+    expect(hardNavigate).not.toHaveBeenCalled();
   });
 
   it("adds a newly created product to the table", async () => {

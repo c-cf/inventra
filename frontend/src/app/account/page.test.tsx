@@ -6,10 +6,6 @@ import AccountPage from "@/app/account/page";
 import { ApiError, changePassword, fetchMe } from "@/lib/api";
 import { hardNavigate } from "@/lib/hardNavigate";
 
-const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
-
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
-
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   fetchMe: vi.fn(),
@@ -18,7 +14,6 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 
 beforeEach(() => {
   window.localStorage.clear();
-  router.replace.mockReset();
   vi.mocked(fetchMe).mockReset().mockResolvedValue({ id: 2, username: "bob", role: "staff" });
   vi.mocked(changePassword).mockReset();
 });

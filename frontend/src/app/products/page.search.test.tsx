@@ -6,10 +6,6 @@ import ProductsPage from "@/app/products/page";
 import { ApiError, createProduct, fetchMe, fetchProducts, type Product } from "@/lib/api";
 import { hardNavigate } from "@/lib/hardNavigate";
 
-const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
-
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
-
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   fetchMe: vi.fn(),
@@ -39,7 +35,6 @@ async function search(user: ReturnType<typeof userEvent.setup>, text: string) {
 
 beforeEach(() => {
   window.localStorage.clear();
-  router.replace.mockReset();
   vi.mocked(fetchMe).mockReset().mockResolvedValue({ id: 1, username: "alice", role: "admin" });
   vi.mocked(fetchProducts).mockReset();
   vi.mocked(createProduct).mockReset();
