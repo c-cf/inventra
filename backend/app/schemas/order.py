@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+OrderStatus = Literal["pending", "paid", "shipped", "cancelled"]
 
 
 class OrderItemIn(BaseModel):
@@ -27,7 +31,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str
+    status: OrderStatus
 
 
 class OrderItemOut(BaseModel):

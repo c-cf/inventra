@@ -22,6 +22,24 @@ class ProductNotFoundError(Exception):
         self.product_id = product_id
 
 
+class InvalidStatusTransitionError(Exception):
+    """Raised when an order cannot move from its current status to the requested one."""
+
+    def __init__(self, current: str, target: str) -> None:
+        super().__init__(current, target)
+        self.current = current
+        self.target = target
+
+
+# pending -> paid -> shipped; anything not yet shipped can be cancelled.
+ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
+    "pending": frozenset({"paid", "cancelled"}),
+    "paid": frozenset({"shipped", "cancelled"}),
+    "shipped": frozenset(),
+    "cancelled": frozenset(),
+}
+
+
 def place_order(
     conn: sqlite3.Connection,
     *,
@@ -51,8 +69,11 @@ def place_order(
 
 def change_status(conn: sqlite3.Connection, order_id: int, new_status: str) -> Order | None:
     """Move an order to new_status. Returns None when the order does not exist."""
-    if orders.get_by_id(conn, order_id) is None:
+    order = orders.get_by_id(conn, order_id)
+    if order is None:
         return None
+    if new_status not in ALLOWED_TRANSITIONS[order.status]:
+        raise InvalidStatusTransitionError(order.status, new_status)
     orders.update_status(conn, order_id, new_status)
     conn.commit()
     return orders.get_by_id(conn, order_id)

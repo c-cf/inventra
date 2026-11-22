@@ -47,7 +47,13 @@ def create_order(payload: OrderCreate, conn: DbConn, current_user: CurrentUser) 
 def update_order_status(
     order_id: int, payload: OrderStatusUpdate, conn: DbConn, _: CurrentUser
 ) -> OrderOut:
-    order = order_service.change_status(conn, order_id, payload.status)
+    try:
+        order = order_service.change_status(conn, order_id, payload.status)
+    except order_service.InvalidStatusTransitionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot change an order from {exc.current} to {exc.target}",
+        ) from None
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return OrderOut.model_validate(order)
