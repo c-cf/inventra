@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.timestamps import UtcTimestamp
 from app.security import BCRYPT_MAX_BYTES
 
 
@@ -36,7 +37,7 @@ class UserSummary(BaseModel):
     id: int
     username: str
     role: str
-    created_at: str
+    created_at: UtcTimestamp
 
 
 Role = Literal["admin", "staff"]

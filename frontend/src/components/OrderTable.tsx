@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import type { Order } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatTimestamp } from "@/lib/format";
 
 type OrderTableProps = {
   orders: Order[];
@@ -51,7 +51,7 @@ export function OrderTable({ orders }: OrderTableProps) {
               </td>
               <td className="px-4 py-3 text-right tabular-nums">{itemCount(order)}</td>
               <td className="px-4 py-3 text-right tabular-nums">{formatCurrency(order.total)}</td>
-              <td className="px-4 py-3 text-zinc-500">{order.created_at}</td>
+              <td className="px-4 py-3 text-zinc-500">{formatTimestamp(order.created_at)}</td>
             </tr>
           ))}
         </tbody>

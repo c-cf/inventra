@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useLayoutEffect, useRef, useState } from "react";
 
 import { ApiError, createOrder, type Order, type Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
@@ -9,9 +9,13 @@ type OrderFormProps = {
   products: Product[];
   onCreated: (order: Order) => void;
   onUnauthorized: () => void;
+  /** Called when the API refuses the order because stock changed meanwhile (409). */
+  onStockConflict?: () => void;
 };
 
 type Line = { key: number; productId: string; quantity: string };
+
+const EMPTY_LINES: Line[] = [{ key: 1, productId: "", quantity: "1" }];
 
 const MAX_CUSTOMER_LENGTH = 200; // OrderCreate.customer_name max_length in the API
 
@@ -55,13 +59,30 @@ export function OrderForm({
   products,
   onCreated,
   onUnauthorized,
+  onStockConflict,
 }: Readonly<OrderFormProps>) {
   const [customer, setCustomer] = useState("");
-  const [lines, setLines] = useState<Line[]>([{ key: 1, productId: "", quantity: "1" }]);
+  const [lines, setLines] = useState<Line[]>(EMPTY_LINES);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   // Set synchronously so even a double click in one frame posts a single order.
   const submitting = useRef(false);
+  // Set after a successful order: the form stays locked until the page is left.
+  const placedOrder = useRef(false);
+
+  // Next.js keeps this page mounted (hidden) after navigating to the new order, and
+  // shows it again on the way back. Layout effects run again each time it is shown,
+  // before paint: start the next order from a clean, unlocked form, including when the
+  // order went through after the user had already left. An unsent draft is left alone.
+  useLayoutEffect(() => {
+    if (!placedOrder.current) return;
+    placedOrder.current = false;
+    submitting.current = false;
+    setPending(false);
+    setCustomer("");
+    setLines(EMPTY_LINES);
+    setError(null);
+  }, []);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
 
@@ -103,12 +124,14 @@ export function OrderForm({
         })),
       });
       placed = true;
+      placedOrder.current = true;
       onCreated(order);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         onUnauthorized();
         return;
       }
+      if (err instanceof ApiError && err.status === 409) onStockConflict?.();
       setError(
         err instanceof ApiError
           ? err.message

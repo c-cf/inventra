@@ -10,6 +10,7 @@ import sqlite3
 from app.db import connect, init_db
 from app.repositories import products, users
 from app.repositories.products import DuplicateSkuError
+from app.repositories.users import DuplicateUsernameError
 from app.security import hash_password
 
 ADMIN_USERNAME = "admin"
@@ -31,8 +32,12 @@ def seed(conn: sqlite3.Connection) -> None:
         (ADMIN_USERNAME, ADMIN_PASSWORD, "admin"),
         (STAFF_USERNAME, STAFF_PASSWORD, "staff"),
     ):
-        if users.get_by_username(conn, username) is None:
+        if users.get_by_username(conn, username) is not None:
+            continue
+        try:
             users.create(conn, username=username, password_hash=hash_password(password), role=role)
+        except DuplicateUsernameError:
+            continue  # the same name already exists in another letter case
     for product in SAMPLE_PRODUCTS:
         try:
             products.create(conn, **product)

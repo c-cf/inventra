@@ -11,7 +11,16 @@ import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function NewOrderPage() {
   const router = useRouter();
-  const { state, signOut } = useAuthedLoad(() => fetchProducts());
+  const { state, setData, signOut } = useAuthedLoad(() => fetchProducts());
+
+  // Someone else changed the stock between loading the form and placing the order:
+  // show the current numbers so the user can fix the quantities.
+  function reloadStock() {
+    fetchProducts().then(
+      (products) => setData(() => products),
+      () => {}, // the order's own error message is already on screen
+    );
+  }
 
   if (state.status === "loading") return <PageStatus message="Loading products..." />;
   if (state.status === "error") return <PageStatus message={state.message} error />;
@@ -29,6 +38,7 @@ export default function NewOrderPage() {
             products={state.data}
             onCreated={(order) => router.push(`/orders/${order.id}`)}
             onUnauthorized={signOut}
+            onStockConflict={reloadStock}
           />
         </section>
       </main>

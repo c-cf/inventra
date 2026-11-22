@@ -9,7 +9,7 @@ import { OrderStatusActions } from "@/components/OrderStatusActions";
 import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { PageStatus } from "@/components/PageStatus";
 import { ApiError, fetchOrder } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatTimestamp } from "@/lib/format";
 import { parsePositiveId } from "@/lib/routeParams";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
@@ -49,7 +49,7 @@ export function OrderDetail() {
             </h1>
             <p className="text-sm text-zinc-500">
               <span className="text-zinc-900 dark:text-zinc-100">{order.customer_name}</span> · placed{" "}
-              {order.created_at}
+              {formatTimestamp(order.created_at)}
             </p>
           </div>
           <OrderStatusActions

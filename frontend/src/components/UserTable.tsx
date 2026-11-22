@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ApiError, type Role, ROLES, updateUserRole, type UserSummary } from "@/lib/api";
+import { formatTimestamp } from "@/lib/format";
 
 type UserTableProps = {
   users: UserSummary[];
@@ -75,7 +76,7 @@ export function UserTable({
                       ))}
                     </select>
                   </td>
-                  <td className="px-4 py-3 text-zinc-500">{user.created_at}</td>
+                  <td className="px-4 py-3 text-zinc-500">{formatTimestamp(user.created_at)}</td>
                 </tr>
               );
             })}

@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.limits import MAX_ID
+from app.schemas.timestamps import UtcTimestamp
 
 OrderStatus = Literal["pending", "paid", "shipped", "cancelled"]
 
@@ -57,6 +58,6 @@ class OrderOut(BaseModel):
     customer_name: str
     status: OrderStatus
     created_by: int
-    created_at: str
+    created_at: UtcTimestamp
     items: list[OrderItemOut]
     total: float

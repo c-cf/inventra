@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.limits import MAX_PRICE, MAX_QUANTITY
+from app.schemas.timestamps import UtcTimestamp
 
 
 class ProductCreate(BaseModel):
@@ -33,7 +34,7 @@ class ProductOut(BaseModel):
     name: str
     price: float
     quantity: int
-    created_at: str
+    created_at: UtcTimestamp
 
 
 class StockAdjustment(BaseModel):
@@ -62,4 +63,4 @@ class StockMovementOut(BaseModel):
     product_id: int
     change: int
     reason: str
-    created_at: str
+    created_at: UtcTimestamp

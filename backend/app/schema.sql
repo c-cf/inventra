@@ -48,3 +48,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     unit_price REAL    NOT NULL CHECK (unit_price >= 0),
     UNIQUE (order_id, product_id)
 );
+
+-- products.sku and users.username also get case-insensitive unique indexes
+-- ("kb-001" vs "KB-001"). app/db.py creates them after this script, so that a
+-- database which already holds such duplicates still starts and says which rows
+-- to fix instead of failing here.

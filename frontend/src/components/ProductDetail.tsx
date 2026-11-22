@@ -9,7 +9,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { PageStatus } from "@/components/PageStatus";
 import { ProductEditForm } from "@/components/ProductEditForm";
 import { ApiError, deleteProduct, fetchProduct } from "@/lib/api";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatTimestamp } from "@/lib/format";
 import { parsePositiveId } from "@/lib/routeParams";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
@@ -73,7 +73,7 @@ export function ProductDetail() {
           <h1 className="text-2xl font-bold">{product.name}</h1>
           <p className="text-sm text-zinc-500">
             <span className="text-zinc-900 dark:text-zinc-100">{product.quantity} in stock</span> ·{" "}
-            {formatCurrency(product.price)} · added {product.created_at}
+            {formatCurrency(product.price)} · added {formatTimestamp(product.created_at)}
           </p>
         </div>
 
