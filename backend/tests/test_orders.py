@@ -178,3 +178,33 @@ def test_get_missing_order_returns_404(client, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
+
+
+def set_status(client, auth_headers, order_id: int, new_status: str):
+    return client.patch(f"/orders/{order_id}", json={"status": new_status}, headers=auth_headers)
+
+
+def test_update_order_status_requires_auth(client):
+    assert client.patch("/orders/1", json={"status": "paid"}).status_code == 401
+
+
+def test_order_moves_from_pending_to_paid_to_shipped(client, auth_headers, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+    order = place(client, auth_headers, (keyboard["id"], 1)).json()
+
+    paid = set_status(client, auth_headers, order["id"], "paid")
+    shipped = set_status(client, auth_headers, order["id"], "shipped")
+
+    assert paid.status_code == 200
+    assert paid.json()["status"] == "paid"
+    assert shipped.status_code == 200
+    assert shipped.json()["status"] == "shipped"
+    assert client.get(f"/orders/{order['id']}", headers=auth_headers).json()["status"] == "shipped"
+    assert stock_of(client, auth_headers, keyboard["id"]) == 9
+
+
+def test_update_status_of_missing_order_returns_404(client, auth_headers):
+    response = set_status(client, auth_headers, 999, "paid")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found"
