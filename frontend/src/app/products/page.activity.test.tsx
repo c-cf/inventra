@@ -125,6 +125,10 @@ describe("ProductsPage when filters change while the reload is on its way (#35)"
     await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]));
     await act(async () => reload.resolve([mouse])); // the reload for "mouse" lands last
 
+    // It asks again for the cleared search (load, search, reload, clear, again), and the
+    // list it ends on holds every product.
+    await waitFor(() => expect(fetchProducts).toHaveBeenCalledTimes(5));
+    expect(fetchProducts).toHaveBeenLastCalledWith({});
     await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]));
   });
 
