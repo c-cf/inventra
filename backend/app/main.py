@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.login_throttle = LoginThrottle(
         max_attempts=settings.login_max_attempts,
         lockout_seconds=settings.login_lockout_seconds,
+        max_attempts_per_client=settings.login_max_attempts_per_client,
     )
     conn = connect()
     try:

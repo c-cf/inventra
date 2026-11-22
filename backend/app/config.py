@@ -13,6 +13,7 @@ class Settings:
     cors_origins: list[str]
     login_max_attempts: int
     login_lockout_seconds: int
+    login_max_attempts_per_client: int
 
 
 def _positive_int(name: str, default: str) -> int:
@@ -43,4 +44,5 @@ def get_settings() -> Settings:
         ],
         login_max_attempts=_positive_int("INVENTRA_LOGIN_MAX_ATTEMPTS", "5"),
         login_lockout_seconds=_positive_int("INVENTRA_LOGIN_LOCKOUT_SECONDS", "300"),
+        login_max_attempts_per_client=_positive_int("INVENTRA_LOGIN_MAX_ATTEMPTS_PER_CLIENT", "20"),
     )
