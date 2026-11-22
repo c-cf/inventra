@@ -1,10 +1,24 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.deps import CurrentUser, DbConn
+from app.repositories import orders
 from app.schemas.order import OrderCreate, OrderOut
 from app.services import orders as order_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+@router.get("", response_model=list[OrderOut])
+def list_orders(conn: DbConn, _: CurrentUser) -> list[OrderOut]:
+    return [OrderOut.model_validate(order) for order in orders.list_all(conn)]
+
+
+@router.get("/{order_id}", response_model=OrderOut)
+def get_order(order_id: int, conn: DbConn, _: CurrentUser) -> OrderOut:
+    order = orders.get_by_id(conn, order_id)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    return OrderOut.model_validate(order)
 
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
