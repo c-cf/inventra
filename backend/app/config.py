@@ -11,6 +11,8 @@ class Settings:
     secret_key: str
     token_ttl_minutes: int
     cors_origins: list[str]
+    login_max_attempts: int
+    login_lockout_seconds: int
 
 
 def get_settings() -> Settings:
@@ -28,4 +30,6 @@ def get_settings() -> Settings:
             for origin in os.getenv("INVENTRA_CORS_ORIGINS", "http://localhost:3000").split(",")
             if origin.strip()
         ],
+        login_max_attempts=int(os.getenv("INVENTRA_LOGIN_MAX_ATTEMPTS", "5")),
+        login_lockout_seconds=int(os.getenv("INVENTRA_LOGIN_LOCKOUT_SECONDS", "300")),
     )
