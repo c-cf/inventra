@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.deps import AdminUser, DbConn
 from app.repositories import users
-from app.schemas.auth import UserCreate, UserSummary
+from app.schemas.auth import RoleUpdate, UserCreate, UserSummary
 from app.security import hash_password
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -26,4 +26,18 @@ def create_user(payload: UserCreate, conn: DbConn, _: AdminUser) -> UserSummary:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Username already exists"
         ) from None
+    return UserSummary.model_validate(user)
+
+
+@router.patch("/{user_id}", response_model=UserSummary)
+def change_role(user_id: int, payload: RoleUpdate, conn: DbConn, admin: AdminUser) -> UserSummary:
+    if user_id == admin.id:
+        # Keeps the last admin from locking everyone out of user management.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="You cannot change your own role"
+        )
+    if users.get_by_id(conn, user_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user = users.update_role(conn, user_id, payload.role)
+    assert user is not None
     return UserSummary.model_validate(user)

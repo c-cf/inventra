@@ -53,3 +53,9 @@ def list_all(conn: sqlite3.Connection) -> list[User]:
 def update_password_hash(conn: sqlite3.Connection, user_id: int, password_hash: str) -> None:
     conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
     conn.commit()
+
+
+def update_role(conn: sqlite3.Connection, user_id: int, role: str) -> User | None:
+    conn.execute("UPDATE users SET role = ? WHERE id = ?", (role, user_id))
+    conn.commit()
+    return get_by_id(conn, user_id)

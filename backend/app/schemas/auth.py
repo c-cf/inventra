@@ -61,3 +61,7 @@ class PasswordChange(BaseModel):
     @classmethod
     def strong_enough(cls, value: str) -> str:
         return check_password_strength(value)
+
+
+class RoleUpdate(BaseModel):
+    role: Role
