@@ -73,6 +73,15 @@ describe("UsersPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to fetch");
   });
 
+  it("does not mistake another API error for the admins-only case", async () => {
+    vi.mocked(fetchUsers).mockRejectedValue(new ApiError(500, "Internal Server Error"));
+
+    render(<UsersPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Internal Server Error");
+    expect(screen.queryByText("Only admins can manage users.")).not.toBeInTheDocument();
+  });
+
   it("updates a row after a role change", async () => {
     vi.mocked(updateUserRole).mockResolvedValue({ ...bob, role: "admin" });
     render(<UsersPage />);
