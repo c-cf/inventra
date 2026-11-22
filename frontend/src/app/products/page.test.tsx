@@ -12,6 +12,7 @@ import {
   fetchProducts,
   fetchStockMovements,
 } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -65,7 +66,7 @@ describe("ProductsPage", () => {
 
     render(<ProductsPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows the signed-in user and the product list", async () => {
@@ -96,7 +97,7 @@ describe("ProductsPage", () => {
     render(<ProductsPage />);
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/login");
+      expect(hardNavigate).toHaveBeenCalledWith("/login");
     });
   });
 
@@ -186,7 +187,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/login");
+      expect(hardNavigate).toHaveBeenCalledWith("/login");
     });
   });
 

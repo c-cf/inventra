@@ -80,4 +80,15 @@ describe("LoginForm", () => {
     await waitFor(() => expect(screen.getByLabelText(/password/i)).toHaveValue(""));
     expect(screen.getByLabelText(/username/i)).toHaveValue("");
   });
+
+  it("keeps the username after a failed sign-in so it can be corrected", async () => {
+    loginMock.mockRejectedValue(new ApiError(401, "Invalid username or password"));
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    await fillAndSubmit("alice", "wrong");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid username or password");
+    expect(screen.getByLabelText(/username/i)).toHaveValue("alice");
+  });
 });
+

@@ -11,6 +11,7 @@ import {
   updateProduct,
   type Product,
 } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 const params = vi.hoisted(() => ({ current: { id: "1" } as Record<string, string> }));
@@ -59,7 +60,7 @@ describe("ProductDetail", () => {
 
     render(<ProductDetail />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the products list and the stock on hand", async () => {
@@ -130,7 +131,7 @@ describe("ProductDetail", () => {
 
     await userEvent.setup().click(await screen.findByRole("button", { name: "Delete product" }));
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("says when the product does not exist and links back", async () => {

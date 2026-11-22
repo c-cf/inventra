@@ -12,6 +12,7 @@ import {
   fetchStockMovements,
   type Product,
 } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -192,7 +193,7 @@ describe("ProductsPage low-stock filter controls", () => {
     await user.type(screen.getByLabelText("Low stock threshold"), "5");
     await user.click(screen.getByRole("button", { name: "Filter" }));
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("reloads every product and empties the threshold on clear", async () => {
@@ -224,6 +225,6 @@ describe("ProductsPage low-stock filter controls", () => {
 
     await user.click(screen.getByRole("button", { name: "Clear Filter" }));
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 });

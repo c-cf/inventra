@@ -10,8 +10,6 @@ const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
-vi.mock("@/lib/hardNavigate", () => ({ hardNavigate: vi.fn() }));
-
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   logout: vi.fn(),

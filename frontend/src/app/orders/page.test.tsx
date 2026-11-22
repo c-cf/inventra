@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "@/app/orders/page";
 import { ApiError, fetchMe, fetchOrders, type Order } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -43,7 +44,7 @@ describe("OrdersPage", () => {
 
     render(<OrdersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("lists the orders and links to the new order page", async () => {
@@ -82,7 +83,7 @@ describe("OrdersPage", () => {
 
     render(<OrdersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows an error when the backend cannot be reached", async () => {
@@ -114,7 +115,7 @@ describe("OrdersPage", () => {
 
     await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("disables the status filter while a request is in flight so responses cannot race", async () => {

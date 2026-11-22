@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import UsersPage from "@/app/users/page";
 import { ApiError, createUser, fetchMe, fetchUsers, updateUserRole, type UserSummary } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -35,7 +36,7 @@ describe("UsersPage", () => {
 
     render(<UsersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("lets an admin see the users and add one", async () => {

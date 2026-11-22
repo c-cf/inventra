@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrderDetail } from "@/components/OrderDetail";
 import { ApiError, fetchMe, fetchOrder, updateOrderStatus, type Order } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 const params = vi.hoisted(() => ({ current: { id: "7" } as Record<string, string> }));
@@ -54,7 +55,7 @@ describe("OrderDetail", () => {
 
     render(<OrderDetail />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the orders list", async () => {
@@ -116,7 +117,7 @@ describe("OrderDetail", () => {
 
     await userEvent.setup().click(await screen.findByRole("button", { name: "Mark as paid" }));
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("signs out an expired session even when the id is not a number", async () => {
@@ -131,6 +132,6 @@ describe("OrderDetail", () => {
 
     render(<OrderDetail />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 });

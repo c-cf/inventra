@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AccountPage from "@/app/account/page";
 import { ApiError, changePassword, fetchMe } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -28,7 +29,7 @@ describe("AccountPage", () => {
 
     render(<AccountPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows who is signed in and the password form", async () => {
@@ -50,6 +51,6 @@ describe("AccountPage", () => {
     await user.type(screen.getByLabelText("Confirm new password"), "brand-new-pass");
     await user.click(screen.getByRole("button", { name: "Change password" }));
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 });
