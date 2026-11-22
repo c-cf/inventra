@@ -176,5 +176,20 @@ describe("StockMovementHistory", () => {
       await vi.waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
+
+    it("refreshes even when the first load is still in flight", async () => {
+      const damaged: StockMovement = { ...restock, id: 2, change: -3, reason: "damaged" };
+      vi.mocked(fetchStockMovements)
+        .mockReturnValueOnce(new Promise(() => {}))
+        .mockResolvedValueOnce([restock, damaged]);
+      const { rerender } = render(historyWith(0));
+      const user = userEvent.setup();
+
+      await view(user, "1");
+      rerender(historyWith(1));
+
+      expect(await screen.findByText("damaged")).toBeInTheDocument();
+      expect(fetchStockMovements).toHaveBeenCalledTimes(2);
+    });
   });
 });
