@@ -14,6 +14,8 @@ type OrderFormProps = {
 
 type Line = { key: number; productId: string; quantity: string };
 
+const MAX_CUSTOMER_LENGTH = 200; // OrderCreate.customer_name max_length in the API
+
 const inputClass =
   "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 " +
   "shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 " +
@@ -29,6 +31,9 @@ function lineTotal(line: Line, products: Product[]): number {
 /** Mirrors the API's rules so most mistakes never leave the browser. */
 function validate(customer: string, lines: Line[], products: Product[]): string | null {
   if (customer.trim() === "") return "Customer is required.";
+  if (customer.trim().length > MAX_CUSTOMER_LENGTH) {
+    return `Customer must be ${MAX_CUSTOMER_LENGTH} characters or fewer.`;
+  }
   const seen = new Set<string>();
   for (const [index, line] of lines.entries()) {
     const n = index + 1;
