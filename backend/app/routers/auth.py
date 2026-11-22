@@ -12,7 +12,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(payload: LoginRequest, conn: DbConn, request: Request) -> TokenResponse:
     throttle = request.app.state.login_throttle
     key = (request.client.host if request.client else "unknown", payload.username.lower())
-    retry_after = throttle.retry_after(key)
+    retry_after = throttle.begin(key)
     if retry_after:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -21,7 +21,6 @@ def login(payload: LoginRequest, conn: DbConn, request: Request) -> TokenRespons
         )
     user = auth_service.authenticate(conn, payload.username, payload.password)
     if user is None:
-        throttle.record_failure(key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",

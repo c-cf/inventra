@@ -57,19 +57,36 @@ class LoginThrottle:
             remaining = entry.locked_until - _now()
             return math.ceil(remaining) if remaining > 0 else 0
 
+    def begin(self, key: tuple[str, str]) -> int:
+        """Start an attempt: 0 if it may go ahead (and is counted), else seconds to wait.
+
+        Counting at the start, under the lock, keeps parallel requests from all
+        passing the check while bcrypt runs for the earlier ones.
+        """
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is not None and entry.locked_until > _now():
+                return math.ceil(entry.locked_until - _now())
+            self._count(key)
+            return 0
+
     def record_failure(self, key: tuple[str, str]) -> None:
         with self._lock:
-            now = _now()
-            self._forget_expired(now)
-            entry = self._entries.get(key)
-            if entry is None or now - entry.window_start > self._lockout_seconds:
-                self._make_room()
-                entry = self._entries[key] = _Entry(window_start=now)
-            entry.failures += 1
-            if entry.failures >= self._max_attempts:
-                entry.failures = 0
-                entry.window_start = now
-                entry.locked_until = now + self._lockout_seconds
+            self._count(key)
+
+    def _count(self, key: tuple[str, str]) -> None:
+        """Count one attempt for key, locking it at the limit. Caller holds the lock."""
+        now = _now()
+        self._forget_expired(now)
+        entry = self._entries.get(key)
+        if entry is None or now - entry.window_start > self._lockout_seconds:
+            self._make_room()
+            entry = self._entries[key] = _Entry(window_start=now)
+        entry.failures += 1
+        if entry.failures >= self._max_attempts:
+            entry.failures = 0
+            entry.window_start = now
+            entry.locked_until = now + self._lockout_seconds
 
     def record_success(self, key: tuple[str, str]) -> None:
         with self._lock:
