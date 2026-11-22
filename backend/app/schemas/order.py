@@ -55,7 +55,7 @@ class OrderOut(BaseModel):
 
     id: int
     customer_name: str
-    status: str
+    status: OrderStatus
     created_by: int
     created_at: str
     items: list[OrderItemOut]
