@@ -104,4 +104,16 @@ describe("ProductsPage with an active low-stock filter", () => {
     expect(within(productTable()).getByText("Mouse")).toBeInTheDocument();
     expect(screen.getByText("2 items")).toBeInTheDocument();
   });
+
+  it("drops an adjusted product that is no longer below the threshold", async () => {
+    const user = await renderFilteredBelow("5", [cable]);
+    vi.mocked(adjustStock).mockResolvedValue({ ...cable, quantity: 12 });
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "2");
+    await user.type(screen.getByLabelText("Stock change"), "10");
+    await user.type(screen.getByLabelText("Adjustment reason"), "restock");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    expect(await screen.findByText("No products yet.")).toBeInTheDocument();
+  });
 });
