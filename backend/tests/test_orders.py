@@ -146,3 +146,35 @@ def test_placing_an_order_records_stock_movements(client, auth_headers, make_pro
 
     movements = client.get(f"/products/{keyboard['id']}/movements", headers=auth_headers).json()
     assert [(m["change"], m["reason"]) for m in movements] == [(-3, f"order #{order['id']}")]
+
+
+def test_list_orders_requires_auth(client):
+    assert client.get("/orders").status_code == 401
+
+
+def test_list_orders_returns_newest_first(client, auth_headers, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+    first = place(client, auth_headers, (keyboard["id"], 1), customer="First").json()
+    second = place(client, auth_headers, (keyboard["id"], 2), customer="Second").json()
+
+    response = client.get("/orders", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json() == [second, first]
+
+
+def test_get_order_by_id(client, auth_headers, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+    created = place(client, auth_headers, (keyboard["id"], 1)).json()
+
+    response = client.get(f"/orders/{created['id']}", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json() == created
+
+
+def test_get_missing_order_returns_404(client, auth_headers):
+    response = client.get("/orders/999", headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found"
