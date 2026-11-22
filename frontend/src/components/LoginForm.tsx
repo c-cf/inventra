@@ -26,6 +26,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setError(null);
     try {
       await login(username, password);
+      // Next keeps this page mounted after navigating away; don't leave credentials in it.
+      setUsername("");
+      setPassword("");
       onSuccess();
     } catch (err) {
       setError(
