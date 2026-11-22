@@ -120,9 +120,9 @@ export default function ProductsPage() {
       prev.status === "ready"
         ? {
             ...prev,
-            products: prev.products.map((item) =>
-              item.id === product.id ? product : item,
-            ),
+            products: prev.products
+              .map((item) => (item.id === product.id ? product : item))
+              .filter((item) => matchesFilter(item, activeBelow)),
           }
         : prev,
     );
