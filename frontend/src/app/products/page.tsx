@@ -32,15 +32,28 @@ function toQuery({ below, q }: Filters): ProductQuery {
 }
 
 export default function ProductsPage() {
-  // Create and adjust responses can land after the filters changed; read the latest ones.
+  // The filters that last went through. Responses (create, adjust, the reload below) can
+  // land after they changed, so those read this rather than a render's `active`.
   const activeRef = useRef<Filters>(NO_FILTERS);
-  // Next keeps this page mounted while hidden and reloads it when the user comes back;
-  // reload what the list was showing, so it still matches the search and threshold (#35).
+
+  // Next keeps this page mounted while hidden and reloads it when the user comes back.
+  // Reload with the applied filters, and ask again if they changed while the request was
+  // out, so the list never falls back to an older search or threshold (#35).
+  async function loadForAppliedFilters(): Promise<Product[]> {
+    let filters: Filters;
+    let products: Product[];
+    do {
+      filters = activeRef.current;
+      products = await fetchProducts(toQuery(filters));
+    } while (activeRef.current !== filters);
+    return products;
+  }
+
   const {
     state,
     setData: setProducts,
     signOut: handleUnauthorized,
-  } = useAuthedLoad(() => fetchProducts(toQuery(activeRef.current)));
+  } = useAuthedLoad(loadForAppliedFilters);
 
   const [threshold, setThreshold] = useState("");
   const [searchText, setSearchText] = useState("");
