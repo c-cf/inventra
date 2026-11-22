@@ -2,6 +2,8 @@
 
 import pytest
 
+from app.security import create_access_token
+
 
 def test_list_users_requires_auth(client):
     assert client.get("/users").status_code == 401
@@ -64,3 +66,39 @@ def test_create_user_validates_payload(client, auth_headers, overrides):
     response = client.post("/users", json={**NEW_USER, **overrides}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_admin_promotes_a_staff_member(client, auth_headers, staff):
+    response = client.patch(f"/users/{staff.id}", json={"role": "admin"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
+    me = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {create_access_token(str(staff.id))}"}
+    )
+    assert me.json()["role"] == "admin"
+
+
+def test_admins_cannot_change_their_own_role(client, auth_headers, user):
+    response = client.patch(f"/users/{user.id}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "You cannot change your own role"
+
+
+def test_staff_cannot_change_roles(client, staff_headers, user):
+    response = client.patch(f"/users/{user.id}", json={"role": "staff"}, headers=staff_headers)
+
+    assert response.status_code == 403
+
+
+def test_changing_the_role_of_a_missing_user_returns_404(client, auth_headers):
+    response = client.patch("/users/999", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+
+@pytest.mark.parametrize("payload", [{"role": "owner"}, {}, {"role": None}])
+def test_role_change_validates_payload(client, auth_headers, staff, payload):
+    assert client.patch(f"/users/{staff.id}", json=payload, headers=auth_headers).status_code == 422
