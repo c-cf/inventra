@@ -125,3 +125,55 @@ def test_user_paths_reject_out_of_range_ids(client, auth_headers):
     response = client.patch(f"/users/{10**20}", json={"role": "staff"}, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+def test_admin_demotes_another_admin(client, auth_headers, db):
+    from app.repositories import users as users_repo
+    from app.security import hash_password
+
+    dave = users_repo.create(
+        db, username="dave", password_hash=hash_password("davepass1"), role="admin"
+    )
+
+    response = client.patch(f"/users/{dave.id}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "staff"
+
+
+def test_an_admin_created_through_the_api_can_manage_users(client, auth_headers):
+    created = client.post(
+        "/users",
+        json={"username": "erin", "password": "erinpass1", "role": "admin"},
+        headers=auth_headers,
+    )
+    token = client.post("/auth/login", json={"username": "erin", "password": "erinpass1"})
+
+    assert created.json()["role"] == "admin"
+    erin_headers = {"Authorization": f"Bearer {token.json()['access_token']}"}
+    assert client.get("/users", headers=erin_headers).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("username", "password"),
+    [("abc", "eightchr"), ("x" * 150, "a" * 72), ("abc", "é" * 36)],
+)
+def test_create_user_accepts_the_boundary_values(client, auth_headers, username, password):
+    response = client.post(
+        "/users",
+        json={"username": username, "password": password, "role": "staff"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize("password", ["sevench", "a" * 73])
+def test_create_user_rejects_just_past_the_password_limits(client, auth_headers, password):
+    response = client.post(
+        "/users",
+        json={"username": "frank", "password": password, "role": "staff"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
