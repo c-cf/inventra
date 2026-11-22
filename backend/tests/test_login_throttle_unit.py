@@ -42,3 +42,26 @@ def test_the_number_of_tracked_keys_is_capped(clock):
         throttle.record_failure(("10.0.0.1", f"ghost-{n}"))
 
     assert len(throttle) <= 5
+
+
+def test_attempts_still_in_flight_count_against_the_limit(clock):
+    # Parallel logins all pass the lock check before bcrypt finishes for any of
+    # them, so an attempt has to be counted when it starts, not when it fails.
+    throttle = LoginThrottle(max_attempts=3, lockout_seconds=60)
+    key = ("10.0.0.1", "alice")
+
+    started = [throttle.begin(key) for _ in range(3)]
+
+    assert started == [0, 0, 0]
+    assert throttle.begin(key) > 0
+
+
+def test_a_success_clears_the_attempts(clock):
+    throttle = LoginThrottle(max_attempts=3, lockout_seconds=60)
+    key = ("10.0.0.1", "alice")
+    throttle.begin(key)
+    throttle.begin(key)
+
+    throttle.record_success(key)
+
+    assert [throttle.begin(key) for _ in range(3)] == [0, 0, 0]
