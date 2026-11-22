@@ -208,3 +208,40 @@ def test_update_status_of_missing_order_returns_404(client, auth_headers):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found"
+
+
+@pytest.mark.parametrize(
+    ("path", "target"),
+    [
+        ([], "shipped"),  # pending cannot skip payment
+        ([], "pending"),  # already pending
+        (["paid"], "pending"),
+        (["paid"], "paid"),
+        (["paid", "shipped"], "paid"),
+        (["paid", "shipped"], "cancelled"),  # shipped goods cannot be cancelled
+        (["cancelled"], "paid"),
+        (["cancelled"], "cancelled"),
+    ],
+)
+def test_invalid_status_transition_returns_409(client, auth_headers, make_product, path, target):
+    keyboard = make_product("KB-001", quantity=10)
+    order = place(client, auth_headers, (keyboard["id"], 1)).json()
+    for step in path:
+        assert set_status(client, auth_headers, order["id"], step).status_code == 200
+    current = path[-1] if path else "pending"
+
+    response = set_status(client, auth_headers, order["id"], target)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == f"Cannot change an order from {current} to {target}"
+    assert client.get(f"/orders/{order['id']}", headers=auth_headers).json()["status"] == current
+
+
+@pytest.mark.parametrize("payload", [{"status": "refunded"}, {"status": ""}, {}])
+def test_update_status_validates_payload(client, auth_headers, make_product, payload):
+    keyboard = make_product("KB-001", quantity=10)
+    order = place(client, auth_headers, (keyboard["id"], 1)).json()
+
+    response = client.patch(f"/orders/{order['id']}", json=payload, headers=auth_headers)
+
+    assert response.status_code == 422
