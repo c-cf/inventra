@@ -7,7 +7,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function placeOrder(page: Page, customer: string, lines: { label: string; quantity: string }[]) {
-  await page.getByRole("link", { name: "Orders", exact: true }).click();
+  // The header's link: order pages also have an "Orders" breadcrumb.
+  await page.getByRole("banner").getByRole("link", { name: "Orders", exact: true }).click();
   await page.getByRole("link", { name: "New order" }).click();
   await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("New order");
   await page.getByLabel("Customer").fill(customer);
@@ -70,3 +71,18 @@ test("cancelling an order puts its stock back", async ({ page }) => {
   await page.goto("/products");
   await expect(quantityCell(page, sku)).toHaveText("6");
 });
+
+test("a second order can be placed right after the first (#25)", async ({ page }) => {
+  const sku = uniqueSku("E2E-TWICE");
+  await addProduct(page, { sku, name: "E2E Twice Widget", price: "3", quantity: "10" });
+
+  await placeOrder(page, `E2E First ${uniqueSku("C")}`, [
+    { label: `E2E Twice Widget (${sku}) · 10 in stock`, quantity: "1" },
+  ]);
+  await placeOrder(page, `E2E Second ${uniqueSku("C")}`, [
+    { label: `E2E Twice Widget (${sku}) · 9 in stock`, quantity: "1" },
+  ]);
+
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("pending");
+});
+

@@ -91,4 +91,20 @@ describe("NewOrderPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
   });
+
+  it("reloads the stock when the order is refused for insufficient stock (#28)", async () => {
+    vi.mocked(fetchProducts)
+      .mockReset()
+      .mockResolvedValueOnce([keyboard])
+      .mockResolvedValueOnce([{ ...keyboard, quantity: 1 }]);
+    vi.mocked(createOrder).mockRejectedValue(new ApiError(409, "Insufficient stock for KB-001"));
+    render(<NewOrderPage />);
+
+    await placeOrder();
+
+    expect(await screen.findByRole("option", { name: "Keyboard (KB-001) · 1 in stock" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Insufficient stock for KB-001");
+    expect(fetchProducts).toHaveBeenCalledTimes(2);
+  });
 });
+
