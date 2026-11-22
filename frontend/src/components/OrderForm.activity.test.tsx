@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Activity } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -48,6 +48,29 @@ describe("OrderForm on a page that Next keeps mounted", () => {
     await waitFor(() => expect(createOrder).toHaveBeenCalledOnce());
 
     rerender(page("hidden"));
+    rerender(page("visible"));
+
+    expect(screen.getByLabelText("Customer")).toHaveValue("");
+    expect(screen.getByLabelText("Product 1")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Place order" })).toBeEnabled();
+  });
+
+  it("starts empty again when the order went through after the user had left", async () => {
+    let finishOrder: (order: Order) => void = () => {};
+    vi.mocked(createOrder).mockReturnValue(
+      new Promise<Order>((resolve) => {
+        finishOrder = resolve;
+      }),
+    );
+    const { rerender } = render(page("visible"));
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Customer"), "ACME Corp");
+    await user.selectOptions(screen.getByLabelText("Product 1"), "1");
+    await user.click(screen.getByRole("button", { name: "Place order" }));
+    expect(screen.getByRole("button", { name: "Placing…" })).toBeDisabled();
+
+    rerender(page("hidden"));
+    await act(async () => finishOrder(created));
     rerender(page("visible"));
 
     expect(screen.getByLabelText("Customer")).toHaveValue("");
