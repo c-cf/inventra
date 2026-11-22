@@ -42,3 +42,7 @@ def test_a_wrong_current_password_is_rejected(client, staff_headers):
 @pytest.mark.parametrize("new", ["short7!", "é" * 37])
 def test_the_new_password_must_be_valid(client, staff_headers, new):
     assert change(client, staff_headers, "staffpass1", new).status_code == 422
+
+
+def test_an_overlong_current_password_is_just_incorrect(client, staff_headers):
+    assert change(client, staff_headers, "é" * 40, "brand-new-pass").status_code == 400
