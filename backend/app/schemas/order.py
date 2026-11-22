@@ -26,6 +26,10 @@ class OrderCreate(BaseModel):
         return items
 
 
+class OrderStatusUpdate(BaseModel):
+    status: str
+
+
 class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

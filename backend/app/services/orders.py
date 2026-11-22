@@ -47,3 +47,12 @@ def place_order(
     order = orders.get_by_id(conn, order_id)
     assert order is not None
     return order
+
+
+def change_status(conn: sqlite3.Connection, order_id: int, new_status: str) -> Order | None:
+    """Move an order to new_status. Returns None when the order does not exist."""
+    if orders.get_by_id(conn, order_id) is None:
+        return None
+    orders.update_status(conn, order_id, new_status)
+    conn.commit()
+    return orders.get_by_id(conn, order_id)

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import orders
-from app.schemas.order import OrderCreate, OrderOut
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
 from app.services import orders as order_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -40,4 +40,14 @@ def create_order(payload: OrderCreate, conn: DbConn, current_user: CurrentUser) 
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Insufficient stock for {exc.sku}",
         ) from None
+    return OrderOut.model_validate(order)
+
+
+@router.patch("/{order_id}", response_model=OrderOut)
+def update_order_status(
+    order_id: int, payload: OrderStatusUpdate, conn: DbConn, _: CurrentUser
+) -> OrderOut:
+    order = order_service.change_status(conn, order_id, payload.status)
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return OrderOut.model_validate(order)

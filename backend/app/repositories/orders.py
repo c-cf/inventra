@@ -68,3 +68,7 @@ def get_by_id(conn: sqlite3.Connection, order_id: int) -> Order | None:
 def list_all(conn: sqlite3.Connection) -> list[Order]:
     rows = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
     return [_to_order(conn, row) for row in rows]
+
+
+def update_status(conn: sqlite3.Connection, order_id: int, status: str) -> None:
+    conn.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
