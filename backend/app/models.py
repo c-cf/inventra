@@ -23,6 +23,15 @@ class Product:
 
 
 @dataclass(frozen=True)
+class StockMovement:
+    id: int
+    product_id: int
+    change: int
+    reason: str
+    created_at: str
+
+
+@dataclass(frozen=True)
 class OrderItem:
     product_id: int
     sku: str

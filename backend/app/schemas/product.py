@@ -44,3 +44,20 @@ class StockAdjustment(BaseModel):
         if value == 0:
             raise ValueError("Stock change cannot be zero")
         return value
+
+    @field_validator("reason")
+    @classmethod
+    def reject_blank_reason(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Reason must not be blank")
+        return value
+
+
+class StockMovementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    change: int
+    reason: str
+    created_at: str

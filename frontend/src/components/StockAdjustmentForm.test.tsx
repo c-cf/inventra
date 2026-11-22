@@ -119,4 +119,57 @@ describe("StockAdjustmentForm", () => {
 
     expect(onAdjusted).not.toHaveBeenCalled();
   });
+
+  it("hands a rejected token to onUnauthorized instead of showing an error", async () => {
+    vi.mocked(adjustStock).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
+    renderForm();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    await user.type(screen.getByLabelText("Stock change"), "5");
+    await user.type(screen.getByLabelText("Adjustment reason"), "restock");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    await vi.waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("reports the adjusted product and clears the change and reason", async () => {
+    vi.mocked(adjustStock).mockResolvedValue({ ...keyboard, quantity: 30 });
+
+    renderForm();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    await user.type(screen.getByLabelText("Stock change"), "5");
+    await user.type(screen.getByLabelText("Adjustment reason"), "  restock  ");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    await vi.waitFor(() => expect(onAdjusted).toHaveBeenCalledWith({ ...keyboard, quantity: 30 }));
+    expect(adjustStock).toHaveBeenCalledWith("tok", 1, 5, "restock");
+    expect(screen.getByLabelText("Stock change")).toHaveValue(null);
+    expect(screen.getByLabelText("Adjustment reason")).toHaveValue("");
+  });
+
+  it("forgets a selected product once it is no longer in the list", async () => {
+    const { rerender } = renderForm();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    rerender(
+      <StockAdjustmentForm
+        token="tok"
+        products={[]}
+        onAdjusted={onAdjusted}
+        onUnauthorized={onUnauthorized}
+      />,
+    );
+    await user.type(screen.getByLabelText("Stock change"), "-1");
+    await user.type(screen.getByLabelText("Adjustment reason"), "oops");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    expect(adjustStock).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/select a product/i);
+  });
 });

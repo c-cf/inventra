@@ -126,6 +126,7 @@ def test_adjust_nonexistent_product(client, auth_headers):
         {"reason": "restock"},
         {"change": 5},
         {"change": 5, "reason": ""},
+        {"change": 5, "reason": "   "},
     ],
 )
 def test_invalid_stock_adjustment(client, auth_headers, adjustment):
