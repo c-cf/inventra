@@ -2,15 +2,15 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import orders
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
+from app.schemas.order import OrderCreate, OrderOut, OrderStatus, OrderStatusUpdate
 from app.services import orders as order_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 
 @router.get("", response_model=list[OrderOut])
-def list_orders(conn: DbConn, _: CurrentUser) -> list[OrderOut]:
-    return [OrderOut.model_validate(order) for order in orders.list_all(conn)]
+def list_orders(conn: DbConn, _: CurrentUser, status: OrderStatus | None = None) -> list[OrderOut]:
+    return [OrderOut.model_validate(order) for order in orders.list_all(conn, status=status)]
 
 
 @router.get("/{order_id}", response_model=OrderOut)

@@ -65,8 +65,13 @@ def get_by_id(conn: sqlite3.Connection, order_id: int) -> Order | None:
     return _to_order(conn, row) if row else None
 
 
-def list_all(conn: sqlite3.Connection) -> list[Order]:
-    rows = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+def list_all(conn: sqlite3.Connection, *, status: str | None = None) -> list[Order]:
+    if status is None:
+        rows = conn.execute("SELECT * FROM orders ORDER BY id DESC").fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM orders WHERE status = ? ORDER BY id DESC", (status,)
+        ).fetchall()
     return [_to_order(conn, row) for row in rows]
 
 
