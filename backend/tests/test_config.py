@@ -27,3 +27,11 @@ def test_defaults_are_used_when_nothing_is_set(monkeypatch):
 
     assert (settings.login_max_attempts, settings.login_lockout_seconds) == (5, 300)
     assert settings.token_ttl_minutes == 60
+
+
+def test_a_wildcard_cors_origin_is_refused(monkeypatch):
+    # With credentialed CORS, "*" would let any origin read responses with the session cookie.
+    monkeypatch.setenv("INVENTRA_CORS_ORIGINS", "http://localhost:3000,*")
+
+    with pytest.raises(ValueError, match="INVENTRA_CORS_ORIGINS"):
+        get_settings()

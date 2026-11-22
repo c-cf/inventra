@@ -98,3 +98,12 @@ def test_the_cookie_can_be_marked_secure(client, user, monkeypatch):
     response = login(client)
 
     assert "Secure" in response.headers["set-cookie"]
+
+
+def test_logout_from_another_site_is_refused(client, user):
+    login(client)
+
+    response = client.post("/auth/logout", headers={"Origin": "http://evil.example"})
+
+    assert response.status_code == 403
+    assert client.get("/auth/me").status_code == 200
