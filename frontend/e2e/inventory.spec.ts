@@ -55,3 +55,30 @@ test("search and the low-stock filter narrow the list together", async ({ page }
   await expect(page.getByText("1 items", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: `${tag}-B` })).toHaveCount(0);
 });
+
+test("the search and low-stock filter still apply after coming back from a product (#35)", async ({ page }) => {
+  const tag = uniqueSku("BACK");
+  await addProduct(page, { sku: `${tag}-A`, name: `Returnable lamp ${tag}`, price: "20", quantity: "1" });
+  await addProduct(page, { sku: `${tag}-B`, name: `Returnable desk ${tag}`, price: "90", quantity: "50" });
+  await page.getByLabel("Search products").fill(tag.toLowerCase());
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("2 items", { exact: true })).toBeVisible();
+  await page.getByLabel("Low stock threshold").fill("5");
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await expect(page.getByText("1 items", { exact: true })).toBeVisible();
+
+  // Rename it on its own page: the new name shows that the list was reloaded on the way back.
+  await page.getByRole("link", { name: `${tag}-A` }).click();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(`${tag}-A`);
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Renamed lamp ${tag}`);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Products" }).click();
+
+  await expect(page.getByRole("row").filter({ hasText: `${tag}-A` })).toContainText(`Renamed lamp ${tag}`);
+  await expect(page.getByText("1 items", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "KB-001" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: `${tag}-B` })).toHaveCount(0);
+  await expect(page.getByLabel("Search products")).toHaveValue(tag.toLowerCase());
+  await expect(page.getByLabel("Low stock threshold")).toHaveValue("5");
+});
