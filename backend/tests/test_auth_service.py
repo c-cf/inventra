@@ -1,5 +1,6 @@
 """authenticate() must not reveal which usernames exist through its timing."""
 
+from app.security import hash_password
 from app.services import auth as auth_service
 
 
@@ -14,7 +15,8 @@ def test_unknown_user_still_checks_a_password_hash(db, monkeypatch):
 
     assert auth_service.authenticate(db, "ghost", "whatever") is None
     assert len(checked) == 1
-    assert checked[0].startswith("$2")  # a real bcrypt hash, so the work matches a real check
+    # Same algorithm and cost as a stored hash ("$2b$12$"), so the work matches a real check.
+    assert checked[0][:7] == hash_password("anything")[:7]
 
 
 def test_known_user_with_wrong_password_is_rejected(db, user):
