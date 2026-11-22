@@ -44,12 +44,14 @@ def test_init_db_starts_on_a_database_with_skus_differing_only_by_case(db, caplo
     _as_before_27(db)
     _add_product(db, "KB-001")
     _add_product(db, "kb-001")
+    _add_product(db, "MS-001")
 
     with caplog.at_level(logging.WARNING, logger="app.db"):
         init_db(db)
 
     assert "products.sku" in caplog.text
     assert "KB-001" in caplog.text and "kb-001" in caplog.text
+    assert "MS-001" not in caplog.text  # only the duplicates are listed
 
 
 def test_init_db_still_applies_the_rule_to_a_table_without_duplicates(db):
