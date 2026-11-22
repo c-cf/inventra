@@ -2,10 +2,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import connect, init_db
+from app.errors import validation_error_handler
 from app.routers import auth, health, orders, products, users
 
 
@@ -28,7 +30,10 @@ def create_app() -> FastAPI:
         allow_origins=get_settings().cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Lets the frontend read the total behind a paginated product list.
+        expose_headers=["X-Total-Count"],
     )
+    app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(products.router)
