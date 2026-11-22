@@ -45,9 +45,7 @@ def auth_headers(user):
 
 @pytest.fixture()
 def staff(db):
-    return users.create(
-        db, username="bob", password_hash=hash_password("staffpass1"), role="staff"
-    )
+    return users.create(db, username="bob", password_hash=hash_password("staffpass1"), role="staff")
 
 
 @pytest.fixture()
