@@ -121,3 +121,23 @@ describe("ProductsPage search", () => {
     expect(getToken()).toBeNull();
   });
 });
+
+describe("ProductsPage search with a slow create", () => {
+  it("checks a product created mid-search against the search that is active when it lands", async () => {
+    const user = await renderPage();
+    let finishCreate: (created: Product) => void = () => {};
+    vi.mocked(createProduct).mockReturnValue(new Promise((done) => (finishCreate = done)));
+    vi.mocked(fetchProducts).mockResolvedValueOnce([keyboard]);
+
+    await user.type(screen.getByLabelText(/^sku$/i), "HB-001");
+    await user.type(screen.getByLabelText(/^name$/i), "USB Hub");
+    await user.type(screen.getByLabelText(/^price$/i), "10");
+    await user.click(screen.getByRole("button", { name: /add product/i }));
+    await search(user, "key");
+    await waitFor(() => expect(screen.queryByRole("link", { name: "MS-001" })).not.toBeInTheDocument());
+    finishCreate(product(3, "HB-001", "USB Hub"));
+    await waitFor(() => expect(screen.getByLabelText(/^sku$/i)).toHaveValue(""));
+
+    expect(within(screen.getByRole("table")).queryByText("USB Hub")).not.toBeInTheDocument();
+  });
+});
