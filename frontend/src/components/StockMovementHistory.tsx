@@ -41,6 +41,7 @@ export function StockMovementHistory({
 
   function handleLoadError(err: unknown) {
     setMovements([]);
+    setSearched(false);
 
     if (err instanceof ApiError && err.status === 401) {
       onUnauthorized();
@@ -91,7 +92,10 @@ export function StockMovementHistory({
 
     fetchStockMovements(token, id).then(
       (result) => {
-        if (request === latestRequest.current) setMovements(result);
+        if (request !== latestRequest.current) return;
+        setMovements(result);
+        setError("");
+        setSearched(true);
       },
       (err: unknown) => {
         if (request === latestRequest.current) onRefreshError(err);
