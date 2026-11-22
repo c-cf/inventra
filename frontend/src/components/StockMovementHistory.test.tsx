@@ -125,4 +125,54 @@ describe("StockMovementHistory", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Please select a product.");
     expect(fetchStockMovements).toHaveBeenCalledOnce();
   });
+
+  describe("when refreshKey changes", () => {
+    function historyWith(refreshKey: number) {
+      return (
+        <StockMovementHistory
+          token="tok"
+          products={products}
+          onUnauthorized={onUnauthorized}
+          refreshKey={refreshKey}
+        />
+      );
+    }
+
+    async function viewThenRefreshWith(outcome: Promise<StockMovement[]>) {
+      vi.mocked(fetchStockMovements).mockResolvedValueOnce([restock]).mockReturnValueOnce(outcome);
+      const { rerender } = render(historyWith(0));
+      const user = userEvent.setup();
+      await view(user, "1");
+      await screen.findByText("restock");
+      rerender(historyWith(1));
+      return rerender;
+    }
+
+    it("shows only the error when the refresh fails", async () => {
+      await viewThenRefreshWith(Promise.reject(new ApiError(500, "Database unavailable")));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
+      expect(screen.queryByText("No stock movements found.")).not.toBeInTheDocument();
+    });
+
+    it("clears the error once a later refresh succeeds", async () => {
+      const rerender = await viewThenRefreshWith(
+        Promise.reject(new ApiError(500, "Database unavailable")),
+      );
+      await screen.findByRole("alert");
+      vi.mocked(fetchStockMovements).mockResolvedValueOnce([restock]);
+
+      rerender(historyWith(2));
+
+      expect(await screen.findByText("restock")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("hands a 401 to onUnauthorized", async () => {
+      await viewThenRefreshWith(Promise.reject(new ApiError(401, "Not authenticated")));
+
+      await vi.waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  });
 });
