@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useLayoutEffect, useState, type FormEvent } from "react";
 
 import { adjustStock, ApiError, type Product } from "@/lib/api";
 
@@ -21,6 +21,12 @@ export function StockAdjustmentForm({
   const [error, setError] = useState("");
   // Confirms the last successful adjustment; the product table may be out of view.
   const [confirmation, setConfirmation] = useState("");
+
+  // Next.js keeps this page mounted while hidden and reloads the products when it is
+  // shown again, so drop the confirmation on the way out before it goes stale.
+  useLayoutEffect(() => {
+    return () => setConfirmation("");
+  }, []);
   const [loading, setLoading] = useState(false);
 
   // A selection only counts while the product is still listed (a filter or an
