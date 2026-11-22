@@ -1,7 +1,7 @@
 # Inventra test report
 
 Companion to the [test plan](TEST_PLAN.md). Figures are from `main` at the end
-of the project (__COMMIT__), run locally on Windows and in CI (GitHub Actions,
+of the project (`35735f8`, the merge of #22), run locally on Windows and in CI (GitHub Actions,
 ubuntu-latest).
 
 ## 1. Summary
