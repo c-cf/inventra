@@ -37,15 +37,19 @@ type RequestOptions = {
   token?: string;
 };
 
-/** Single place that talks to the backend: builds headers, raises ApiError on non-2xx. */
-async function request<T>(path: string, { method = "GET", body, token }: RequestOptions = {}): Promise<T> {
+/**
+ * Single place that talks to the backend: raises ApiError on non-2xx.
+ * The session lives in an httpOnly cookie set by the API, so scripts never see a
+ * token; `credentials: "include"` makes the browser send (and accept) that cookie.
+ */
+async function request<T>(path: string, { method = "GET", body }: RequestOptions = {}): Promise<T> {
   const headers = new Headers();
   if (body !== undefined) headers.set("Content-Type", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
+    credentials: "include",
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -73,6 +77,10 @@ async function errorDetail(response: Response): Promise<string> {
 
 export function login(username: string, password: string): Promise<TokenResponse> {
   return request<TokenResponse>("/auth/login", { method: "POST", body: { username, password } });
+}
+
+export function logout(): Promise<void> {
+  return request<void>("/auth/logout", { method: "POST" });
 }
 
 export function fetchMe(token: string): Promise<User> {
