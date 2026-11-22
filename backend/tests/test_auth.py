@@ -57,3 +57,9 @@ def test_me_rejects_token_for_unknown_user(client):
     response = client.get("/auth/me", headers=headers)
 
     assert response.status_code == 401
+
+
+def test_login_rejects_an_overlong_username(client):
+    response = client.post("/auth/login", json={"username": "x" * 151, "password": "whatever"})
+
+    assert response.status_code == 422
