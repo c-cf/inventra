@@ -102,3 +102,26 @@ def test_changing_the_role_of_a_missing_user_returns_404(client, auth_headers):
 @pytest.mark.parametrize("payload", [{"role": "owner"}, {}, {"role": None}])
 def test_role_change_validates_payload(client, auth_headers, staff, payload):
     assert client.patch(f"/users/{staff.id}", json=payload, headers=auth_headers).status_code == 422
+
+
+def test_only_admins_can_delete_products(client, auth_headers, staff_headers):
+    created = client.post(
+        "/products",
+        json={"sku": "DEL-1", "name": "To delete", "price": 1, "quantity": 1},
+        headers=staff_headers,
+    )
+    assert created.status_code == 201
+    product_id = created.json()["id"]
+
+    refused = client.delete(f"/products/{product_id}", headers=staff_headers)
+    allowed = client.delete(f"/products/{product_id}", headers=auth_headers)
+
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == "Admin role required"
+    assert allowed.status_code == 204
+
+
+def test_user_paths_reject_out_of_range_ids(client, auth_headers):
+    response = client.patch(f"/users/{10**20}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 422
