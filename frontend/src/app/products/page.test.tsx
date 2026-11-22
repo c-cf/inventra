@@ -69,7 +69,7 @@ describe("ProductsPage", () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText("alice")).toBeInTheDocument();
-    expect(fetchProducts).toHaveBeenCalledWith();
+    expect(fetchProducts).toHaveBeenCalledWith({}); // no search or threshold yet
   });
 
   it("sends a rejected session to /login", async () => {
