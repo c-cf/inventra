@@ -98,3 +98,14 @@ def test_insufficient_stock_rejects_the_whole_order(client, auth_headers, db, ma
     assert stock_of(client, auth_headers, mouse["id"]) == 1
     assert count_rows(db, "orders") == 0
     assert count_rows(db, "order_items") == 0
+
+
+def test_unknown_product_rejects_the_whole_order(client, auth_headers, db, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+
+    response = place(client, auth_headers, (keyboard["id"], 2), (999, 1))
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Product 999 not found"
+    assert stock_of(client, auth_headers, keyboard["id"]) == 10
+    assert count_rows(db, "orders") == 0
