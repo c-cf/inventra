@@ -31,7 +31,7 @@ def create(
             (sku, name, price, quantity),
         )
     except sqlite3.IntegrityError as exc:
-        if "products.sku" in str(exc):
+        if "UNIQUE constraint failed: products.sku" in str(exc):
             raise DuplicateSkuError(sku) from exc
         raise
     conn.commit()
