@@ -106,4 +106,23 @@ describe("StockMovementHistory", () => {
     await screen.findByRole("button", { name: "View Movements" });
     expect(screen.queryByText("restock")).not.toBeInTheDocument();
   });
+
+  it("hides the history of a product that is no longer in the list", async () => {
+    vi.mocked(fetchStockMovements).mockResolvedValue([restock]);
+    const { rerender } = render(
+      <StockMovementHistory token="tok" products={products} onUnauthorized={onUnauthorized} />,
+    );
+    const user = userEvent.setup();
+
+    await view(user, "1");
+    await screen.findByText("restock");
+    rerender(
+      <StockMovementHistory token="tok" products={[products[1]]} onUnauthorized={onUnauthorized} />,
+    );
+
+    expect(screen.queryByText("restock")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "View Movements" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Please select a product.");
+    expect(fetchStockMovements).toHaveBeenCalledOnce();
+  });
 });
