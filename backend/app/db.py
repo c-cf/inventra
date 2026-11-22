@@ -57,8 +57,8 @@ def _create_nocase_unique_index(
         ).fetchall()
         logger.warning(
             "%s.%s has values that differ only by letter case (%s), so new duplicates "
-            "like these are not refused yet. Rename them; the rule is applied on the "
-            "next start.",
+            "like these are not refused yet. Make them differ (SKUs can be edited in the "
+            "app, usernames only in the database); the rule is applied on the next start.",
             table,
             column,
             "; ".join(row[0] for row in groups),
