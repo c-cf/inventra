@@ -1,45 +1,28 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { StockMovementHistory } from "@/components/StockMovementHistory";
+import { useState } from "react";
+
 import { AppHeader } from "@/components/AppHeader";
+import { PageStatus } from "@/components/PageStatus";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductTable } from "@/components/ProductTable";
 import { StockAdjustmentForm } from "@/components/StockAdjustmentForm";
-
-import {
-  ApiError,
-  fetchMe,
-  fetchProducts,
-  type Product,
-  type User,
-} from "@/lib/api";
-
-import { clearToken, getToken } from "@/lib/auth";
+import { StockMovementHistory } from "@/components/StockMovementHistory";
+import { ApiError, fetchProducts, type Product } from "@/lib/api";
+import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 /** Whether a product belongs in the list while a low-stock filter is active. */
 function matchesFilter(product: Product, below: number | null): boolean {
   return below === null || product.quantity < below;
 }
 
-type PageState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | {
-      status: "ready";
-      user: User;
-      products: Product[];
-      token: string;
-    };
-
 export default function ProductsPage() {
-  const router = useRouter();
-
-  const [state, setState] = useState<PageState>({
-    status: "loading",
-  });
+  const {
+    state,
+    setData: setProducts,
+    signOut: handleUnauthorized,
+  } = useAuthedLoad((token) => fetchProducts(token));
 
   const [threshold, setThreshold] = useState("");
   const [filterError, setFilterError] = useState("");
@@ -47,86 +30,18 @@ export default function ProductsPage() {
   const [activeBelow, setActiveBelow] = useState<number | null>(null);
   const [movementsVersion, setMovementsVersion] = useState(0);
 
-  useEffect(() => {
-    const token = getToken();
-
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [user, products] = await Promise.all([
-          fetchMe(token!),
-          fetchProducts(token!),
-        ]);
-
-        if (cancelled) return;
-
-        setState({
-          status: "ready",
-          user,
-          products,
-          token: token!,
-        });
-      } catch (error) {
-        if (cancelled) return;
-
-        if (error instanceof ApiError && error.status === 401) {
-          clearToken();
-          router.replace("/login");
-          return;
-        }
-
-        setState({
-          status: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to load products.",
-        });
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
-
-  function handleUnauthorized() {
-    clearToken();
-    router.replace("/login");
-  }
-
   function handleCreated(product: Product) {
     if (!matchesFilter(product, activeBelow)) return;
 
-    setState((prev) =>
-      prev.status === "ready"
-        ? {
-            ...prev,
-            products: [...prev.products, product],
-          }
-        : prev,
-    );
+    setProducts((products) => [...products, product]);
   }
 
   function handleAdjusted(product: Product) {
     setMovementsVersion((version) => version + 1);
-    setState((prev) =>
-      prev.status === "ready"
-        ? {
-            ...prev,
-            products: prev.products
-              .map((item) => (item.id === product.id ? product : item))
-              .filter((item) => matchesFilter(item, activeBelow)),
-          }
-        : prev,
+    setProducts((products) =>
+      products
+        .map((item) => (item.id === product.id ? product : item))
+        .filter((item) => matchesFilter(item, activeBelow)),
     );
   }
 
@@ -150,11 +65,7 @@ export default function ProductsPage() {
     try {
       const products = await fetchProducts(state.token, value);
 
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, products }
-          : prev,
-      );
+      setProducts(() => products);
       setActiveBelow(value);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -181,11 +92,7 @@ export default function ProductsPage() {
     try {
       const products = await fetchProducts(state.token);
 
-      setState((prev) =>
-        prev.status === "ready"
-          ? { ...prev, products }
-          : prev,
-      );
+      setProducts(() => products);
       setActiveBelow(null);
 
       setThreshold("");
@@ -205,25 +112,8 @@ export default function ProductsPage() {
     }
   }
 
-  if (state.status === "loading") {
-    return (
-      <div className="min-h-screen">
-        <main className="mx-auto max-w-5xl p-6">
-          <p>Loading products...</p>
-        </main>
-      </div>
-    );
-  }
-
-  if (state.status === "error") {
-    return (
-      <div className="min-h-screen">
-        <main className="mx-auto max-w-5xl p-6">
-          <p role="alert">{state.message}</p>
-        </main>
-      </div>
-    );
-  }
+  if (state.status === "loading") return <PageStatus message="Loading products..." />;
+  if (state.status === "error") return <PageStatus message={state.message} error />;
 
   return (
     <div className="min-h-screen">
@@ -301,30 +191,29 @@ export default function ProductsPage() {
         {/* Stock Adjustment */}
         <StockAdjustmentForm
           token={state.token}
-          products={state.products}
+          products={state.data}
           onAdjusted={handleAdjusted}
           onUnauthorized={handleUnauthorized}
         />
 
         <StockMovementHistory
           token={state.token}
-          products={state.products}
+          products={state.data}
           onUnauthorized={handleUnauthorized}
           refreshKey={movementsVersion}
         />
 
-        {/* Product List */}
         {/* Product List */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Product List</h2>
 
             <p className="text-sm text-zinc-500">
-              {state.products.length} items
+              {state.data.length} items
             </p>
           </div>
 
-          <ProductTable products={state.products} />
+          <ProductTable products={state.data} />
         </section>
       </main>
     </div>
