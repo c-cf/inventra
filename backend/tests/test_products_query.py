@@ -230,3 +230,10 @@ def test_search_matches_non_ascii_names_typed_exactly(client, auth_headers):
     response = client.get("/products", params={"q": "Écran"}, headers=auth_headers)
 
     assert skus(response) == ["EC-1"]
+
+
+def test_offset_without_limit_skips_the_first_products(client, auth_headers, catalogue):
+    response = client.get("/products", params={"offset": 2}, headers=auth_headers)
+
+    assert skus(response) == ["KB-002", "HB-001"]
+    assert response.headers["X-Total-Count"] == "4"
