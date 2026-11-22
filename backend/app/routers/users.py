@@ -1,11 +1,16 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Path, status
 
 from app.deps import AdminUser, DbConn
 from app.repositories import users
 from app.schemas.auth import RoleUpdate, UserCreate, UserSummary
+from app.schemas.limits import MAX_ID
 from app.security import hash_password
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+UserId = Annotated[int, Path(ge=1, le=MAX_ID)]
 
 
 @router.get("", response_model=list[UserSummary])
@@ -30,7 +35,9 @@ def create_user(payload: UserCreate, conn: DbConn, _: AdminUser) -> UserSummary:
 
 
 @router.patch("/{user_id}", response_model=UserSummary)
-def change_role(user_id: int, payload: RoleUpdate, conn: DbConn, admin: AdminUser) -> UserSummary:
+def change_role(
+    user_id: UserId, payload: RoleUpdate, conn: DbConn, admin: AdminUser
+) -> UserSummary:
     if user_id == admin.id:
         # Keeps the last admin from locking everyone out of user management.
         raise HTTPException(
