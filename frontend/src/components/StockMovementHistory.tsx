@@ -8,6 +8,7 @@ import {
   type Product,
   type StockMovement,
 } from "@/lib/api";
+import { formatTimestamp } from "@/lib/format";
 
 type Props = {
   products: Product[];
@@ -187,7 +188,7 @@ export function StockMovementHistory({
                   </td>
 
                   <td className="px-4 py-3">
-                    {movement.created_at}
+                    {formatTimestamp(movement.created_at)}
                   </td>
                 </tr>
               ))}
