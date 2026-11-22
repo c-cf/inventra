@@ -74,6 +74,7 @@ describe("OrderStatusActions", () => {
     ["pending", "Mark as paid", "paid"],
     ["paid", "Mark as shipped", "shipped"],
     ["paid", "Cancel order", "cancelled"],
+    ["pending", "Cancel order", "cancelled"],
   ] as const)("moves a %s order on '%s'", async (status, button, target) => {
     vi.mocked(updateOrderStatus).mockResolvedValue(order(target));
     const user = renderActions(status);
