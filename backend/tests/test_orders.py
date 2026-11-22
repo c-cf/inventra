@@ -109,3 +109,31 @@ def test_unknown_product_rejects_the_whole_order(client, auth_headers, db, make_
     assert response.json()["detail"] == "Product 999 not found"
     assert stock_of(client, auth_headers, keyboard["id"]) == 10
     assert count_rows(db, "orders") == 0
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"customer_name": "ACME", "items": []},
+        {"customer_name": "ACME", "items": [{"product_id": 1, "quantity": 0}]},
+        {"customer_name": "ACME", "items": [{"product_id": 1, "quantity": -1}]},
+        {"customer_name": "ACME", "items": [{"product_id": 1, "quantity": 1.5}]},
+        {"customer_name": "", "items": [{"product_id": 1, "quantity": 1}]},
+        {"customer_name": "   ", "items": [{"product_id": 1, "quantity": 1}]},
+        {"items": [{"product_id": 1, "quantity": 1}]},
+        {"customer_name": "ACME"},
+        {
+            "customer_name": "ACME",
+            "items": [{"product_id": 1, "quantity": 1}, {"product_id": 1, "quantity": 2}],
+        },
+    ],
+)
+def test_create_order_validates_payload(client, auth_headers, db, make_product, payload):
+    keyboard = make_product("KB-001", quantity=10)
+    assert keyboard["id"] == 1
+
+    response = client.post("/orders", json=payload, headers=auth_headers)
+
+    assert response.status_code == 422
+    assert stock_of(client, auth_headers, keyboard["id"]) == 10
+    assert count_rows(db, "orders") == 0
