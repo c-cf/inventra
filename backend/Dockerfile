@@ -31,4 +31,4 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # INVENTRA_SEED=1 creates the demo admin/staff accounts and sample products (idempotent).
-CMD ["sh", "-c", "if [ \"${INVENTRA_SEED:-0}\" = 1 ]; then python -m app.seed; fi; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "if [ \"${INVENTRA_SEED:-0}\" = 1 ]; then python -m app.seed || exit 1; fi; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
