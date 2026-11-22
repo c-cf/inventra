@@ -50,10 +50,10 @@ Features are built red → green → refactor, with one commit per step
 checked out and shown to fail. Tests that pin down behaviour which already
 worked are labelled `test(scope): cover …`.
 
-Pull requests #2–#9 were reviewed by teammates. From #10 on, every pull request
-was also reviewed by an independent reviewer (a separate agent with no access
-to the author's reasoning) that re-ran the suite, replayed red commits, and
-tried to break the code. Findings were rated P0–P3 (see §9); nothing was merged
+Pull requests #2–#9 were reviewed by a teammate on GitHub. From #10 on, review
+was done instead by an independent reviewer (a separate agent with no access to
+the author's reasoning) that re-ran the suite, replayed red commits, and tried
+to break the code; the author merged once it reported no open P0/P1. Findings were rated P0–P3 (see §9); nothing was merged
 with an open P0 or P1. The few places where the history departs from strict
 red → green are listed in the test report (§5).
 
@@ -69,8 +69,8 @@ and invalid classes and tested at their edges:
 | Order line quantity            | 1                                 | 0, -1, 1.5, 10^20                | `test_orders.py`, `OrderForm.test.tsx` |
 | Ids in paths and bodies        | ids returned by the API           | 10^20 (overflows SQLite)         | `test_orders.py`, `test_products_query.py`, `test_users.py` |
 | Low-stock threshold            | quantity == threshold is *not* low | negative, fractional, blank      | `page.inventory.test.tsx`, `test_inventory.py` |
-| Product price                  | typical prices, cents (25.50)     | -1, 2,000,000,000, infinity (`1e309`); client: above 1,000,000,000 | `test_products.py`, `test_products_query.py`, `ProductEditForm.test.tsx` |
-| Search text                    | `%`, `_`, `!` matched literally; non-ASCII names; blank or whitespace means no filter | over 100 characters (422) | `test_products_query.py` |
+| Product price                  | typical prices with cents (9.99, 12.5) | -1, 2,000,000,000, infinity (`1e309`); client: above 1,000,000,000 | `test_products.py`, `test_products_query.py`, `ProductEditForm.test.tsx` |
+| Search text                    | `%`, `_`, `!` matched literally; non-ASCII names; blank or whitespace means no filter | (the 100-character limit is enforced by the schema but not tested) | `test_products_query.py` |
 
 **State transition testing.** Orders follow this model; every valid edge and
 the invalid ones below are tested (`test_orders.py`,
@@ -142,13 +142,13 @@ affected suites locally.
 | Role | Responsibility |
 | ---- | -------------- |
 | Developers (three team members, see the git history) | Write the failing test first, implement, refactor; keep CI green |
-| Independent reviewer (teammates; from #10 also a separate agent) | Re-run suites, replay red commits, mutation-check, rate findings P0–P3 |
+| Reviewer (a teammate for #2–#9; a separate agent from #10 on) | Re-run suites, replay red commits, mutation-check, rate findings P0–P3 |
 | CI (GitHub Actions) | Enforce lint, types, tests, coverage floors, the Docker smoke test and E2E on every PR |
 
 | Phase | Dates (2026) | Work |
 | ----- | ------------ | ---- |
-| Foundation | Nov 5–9 | Scaffold, auth, products API and UI, CI |
-| Products and inventory | Nov 16–21 | Product form, inventory API and UI, product update |
+| Foundation | Nov 5–9 | Scaffold, auth, products API and UI, CI; product form started |
+| Products and inventory | Nov 16–21 | Product form merged, inventory API and UI, product update |
 | Completion | Nov 22–23 | Coverage in CI, orders, search and delete, roles, login hardening, cookie sessions, Docker, E2E, documentation |
 
 Deliverables: the source code and test suites in this repository, the CI

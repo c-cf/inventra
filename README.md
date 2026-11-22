@@ -103,7 +103,7 @@ passwords, so it is for local use. To change settings, copy
 ### Without Docker
 
 Prerequisites: [uv](https://docs.astral.sh/uv/) (it downloads Python 3.12 for
-you) and Node.js 22.22+ or 24.15+ with npm.
+you) and Node.js 22.22.2+ or 24.15+ with npm.
 
 ```bash
 cd backend

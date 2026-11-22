@@ -15,8 +15,9 @@ ubuntu-latest).
 | Static checks                 | ruff, ESLint, `tsc` | clean | — |
 
 The initial scaffold (2026-11-05) was pushed directly to `main`; since PR #2
-every change reached `main` through a pull request whose CI was green, and from
-#10 on each one also had an independent review with no open P0/P1 (see §4). The
+every change reached `main` through a pull request whose CI was green. #2–#9
+were reviewed by a teammate; from #10 on, an independent agent review took that
+role and each PR was merged only once it reported no open P0/P1 (see §4). The
 TDD history can be replayed: each `test(scope): add failing …` commit fails for
 its stated reason and the following `feat`/`fix` commit passes, with the
 exceptions listed in §5.
@@ -27,7 +28,7 @@ exceptions listed in §5.
 | ------- | ------ | ----- |
 | F1 Sign-in / session cookie / route guard | Pass | Cookie set across ports, proxy redirect and sign-out verified end-to-end |
 | F2 Login hardening | Pass | Unknown users cost one bcrypt check at the real cost (pinned by a test); parallel guesses capped at the limit (reviewer's run against a real server) |
-| F3 Roles, users, password change | Pass | Every cell of the authorization table has tests (401 on representative endpoints); account-rule boundaries pinned |
+| F3 Roles, users, password change | Pass | The authorization table is tested cell by cell (401 on representative endpoints), except an admin changing their own password, which uses the same code path as staff; account-rule boundaries pinned |
 | F4 Products | Pass | Search wildcards, non-ASCII, pagination totals, delete refusal for ordered products |
 | F5 Inventory | Pass | Stock never negative; history refreshes; filter consistency |
 | F6 Orders | Pass | Atomic placement, every valid transition and 8 of the 12 invalid pairs, cancel restocks, compare-and-set |
@@ -72,10 +73,10 @@ Gaps that were only in the tests (surviving mutants) are summarised in §4.
 
 ## 4. Review and mutation testing
 
-Pull requests #2–#9 were reviewed by teammates on GitHub. From #10 on, every
-pull request also had an independent review by a separate agent that re-ran the
-suites, replayed red commits and tried to break the code; the PR descriptions
-record each round that led to changes. Blocking reviews and the fix rounds:
+Pull requests #2–#9 were reviewed by a teammate on GitHub. From #10 on, review
+was done instead by a separate agent that re-ran the suites, replayed red
+commits and tried to break the code; the PR descriptions record each round that
+led to changes. Blocking reviews and the fix rounds:
 
 | PR | Blocked on | Rounds |
 | -- | ---------- | ------ |
