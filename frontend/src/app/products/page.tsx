@@ -32,19 +32,21 @@ function toQuery({ below, q }: Filters): ProductQuery {
 }
 
 export default function ProductsPage() {
+  // Create and adjust responses can land after the filters changed; read the latest ones.
+  const activeRef = useRef<Filters>(NO_FILTERS);
+  // Next keeps this page mounted while hidden and reloads it when the user comes back;
+  // reload what the list was showing, so it still matches the search and threshold (#35).
   const {
     state,
     setData: setProducts,
     signOut: handleUnauthorized,
-  } = useAuthedLoad(() => fetchProducts());
+  } = useAuthedLoad(() => fetchProducts(toQuery(activeRef.current)));
 
   const [threshold, setThreshold] = useState("");
   const [searchText, setSearchText] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
   const [active, setActive] = useState<Filters>(NO_FILTERS);
-  // Create and adjust responses can land after the filters changed; read the latest ones.
-  const activeRef = useRef<Filters>(NO_FILTERS);
   const [movementsVersion, setMovementsVersion] = useState(0);
 
   function handleCreated(product: Product) {
