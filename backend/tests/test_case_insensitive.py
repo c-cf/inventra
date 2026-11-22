@@ -18,9 +18,12 @@ def test_renaming_to_another_products_sku_in_other_case_is_a_duplicate(client, a
         "/products", json={**PRODUCT, "sku": "MS-001", "name": "Mouse"}, headers=auth_headers
     ).json()
 
-    response = client.patch(f"/products/{mouse['id']}", json={"sku": "Kb-001"}, headers=auth_headers)
+    response = client.patch(
+        f"/products/{mouse['id']}", json={"sku": "Kb-001"}, headers=auth_headers
+    )
 
     assert response.status_code == 409
+    assert response.json()["detail"] == "SKU already exists"
 
 
 def test_a_product_can_change_the_case_of_its_own_sku(client, auth_headers):
