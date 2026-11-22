@@ -11,6 +11,10 @@ class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
 
 
+class ProductInUseError(Exception):
+    """Raised when deleting a product that order items still reference."""
+
+
 def _is_duplicate_sku(exc: sqlite3.IntegrityError) -> bool:
     # Match the UNIQUE violation only: a NOT NULL failure also mentions products.sku.
     return "UNIQUE constraint failed: products.sku" in str(exc)
@@ -188,3 +192,21 @@ def record_movement(conn: sqlite3.Connection, product_id: int, change: int, reas
 def add_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> None:
     """Put quantity back into stock. Does not commit."""
     conn.execute("UPDATE products SET quantity = quantity + ? WHERE id = ?", (quantity, product_id))
+
+
+def delete(conn: sqlite3.Connection, product_id: int) -> bool:
+    """Delete a product and its stock history. False when it does not exist.
+
+    Order items reference products, so the foreign key refuses to delete an
+    ordered product even if an order lands between a check and the delete.
+    """
+    try:
+        conn.execute("DELETE FROM stock_movements WHERE product_id = ?", (product_id,))
+        cursor = conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    except sqlite3.IntegrityError as exc:
+        conn.rollback()
+        if "FOREIGN KEY constraint failed" in str(exc):
+            raise ProductInUseError(product_id) from exc
+        raise
+    conn.commit()
+    return cursor.rowcount == 1

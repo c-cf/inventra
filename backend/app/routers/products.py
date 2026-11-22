@@ -110,3 +110,17 @@ def get_stock_movements(
     movements = products.get_stock_movements(conn, product_id)
 
     return [StockMovementOut.model_validate(movement) for movement in movements]
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(product_id: int, conn: DbConn, _: CurrentUser) -> Response:
+    try:
+        deleted = products.delete(conn, product_id)
+    except products.ProductInUseError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product has orders and cannot be deleted",
+        ) from None
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
