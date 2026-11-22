@@ -77,6 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # Start from the documented template so a copied .env.example is part of what we test.
+      - name: Use the example backend settings
+        run: cp backend/.env.example backend/.env
       - name: Build and start the stack
         run: docker compose up --build --detach --wait --wait-timeout 300
       - name: Smoke test the running containers
@@ -89,8 +92,15 @@ jobs:
             | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')
           curl --fail --silent -H "Authorization: Bearer $TOKEN" http://localhost:8000/products \
             | python3 -c 'import json, sys; products = json.load(sys.stdin); assert len(products) >= 4, products'
-          curl --fail --silent http://localhost:3000/login | grep -q "Sign in"
-          echo "Stack is up: API answers, seeded admin can log in, UI serves /login."
+          # Save first: `grep -q` exiting early could EPIPE curl under pipefail.
+          curl --fail --silent http://localhost:3000/login -o login.html
+          grep "Sign in" login.html > /dev/null
+          # The browser path: CORS must admit the UI's origin, and the UI must call this API.
+          curl --fail --silent -X OPTIONS http://localhost:8000/auth/login             -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: POST' -D headers.txt -o /dev/null
+          grep -i '^access-control-allow-origin: http://localhost:3000' headers.txt
+          docker compose exec -T frontend grep -rlF http://localhost:8000 .next/static > /dev/null
+          docker compose exec -T backend test -f /data/inventra.db
+          echo "Stack is up: API answers, seeded admin can log in, UI serves /login and targets the API."
       - name: Show container logs
         if: failure()
         run: docker compose logs
