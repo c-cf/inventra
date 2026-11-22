@@ -45,10 +45,12 @@ describe("UserCreateForm", () => {
     expect(createUser).toHaveBeenCalledWith("tok", { username: "carol", password: "carolpass1", role: "admin" });
     expect(screen.getByLabelText("Username")).toHaveValue("");
     expect(screen.getByLabelText("Password")).toHaveValue("");
+    expect(screen.getByLabelText("Role")).toHaveValue("staff");
   });
 
   it.each([
     ["ab", "carolpass1", "Username must be 3 to 150 characters."],
+    ["x".repeat(151), "carolpass1", "Username must be 3 to 150 characters."],
     ["has space", "carolpass1", "Username may only use letters, digits, '.', '_' and '-'."],
     ["carol", "short7!", "Password must be at least 8 characters."],
     ["carol", "é".repeat(37), "Password must be at most 72 bytes."],

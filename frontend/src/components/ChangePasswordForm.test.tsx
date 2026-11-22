@@ -36,6 +36,7 @@ describe("ChangePasswordForm", () => {
     expect(changePassword).toHaveBeenCalledWith("tok", "old-password", "brand-new-pass");
     expect(screen.getByLabelText("Current password")).toHaveValue("");
     expect(screen.getByLabelText("New password")).toHaveValue("");
+    expect(screen.getByLabelText("Confirm new password")).toHaveValue("");
   });
 
   it.each([

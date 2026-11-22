@@ -74,6 +74,7 @@ describe("UserTable", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("User not found");
     expect(onChanged).not.toHaveBeenCalled();
+    expect(roleSelect("bob")).toHaveValue("staff");
   });
 
   it("hands a rejected token to onUnauthorized", async () => {
