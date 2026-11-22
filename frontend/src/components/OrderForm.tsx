@@ -29,10 +29,13 @@ function lineTotal(line: Line, products: Product[]): number {
 /** Mirrors the API's rules so most mistakes never leave the browser. */
 function validate(customer: string, lines: Line[], products: Product[]): string | null {
   if (customer.trim() === "") return "Customer is required.";
+  const seen = new Set<string>();
   for (const [index, line] of lines.entries()) {
     const n = index + 1;
     const product = products.find((p) => String(p.id) === line.productId);
     if (!product) return `Choose a product for line ${n}.`;
+    if (seen.has(line.productId)) return `${product.sku} is on more than one line.`;
+    seen.add(line.productId);
     const quantity = Number(line.quantity);
     if (line.quantity.trim() === "" || !Number.isInteger(quantity) || quantity <= 0) {
       return `Quantity for line ${n} must be a whole number of 1 or more.`;
@@ -50,6 +53,17 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
   const [error, setError] = useState<string | null>(null);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
+
+  function addLine() {
+    setLines((current) => [
+      ...current,
+      { key: Math.max(...current.map((line) => line.key)) + 1, productId: "", quantity: "1" },
+    ]);
+  }
+
+  function removeLine(key: number) {
+    setLines((current) => current.filter((line) => line.key !== key));
+  }
 
   function updateLine(key: number, changes: Partial<Omit<Line, "key">>) {
     setLines((current) =>
@@ -91,7 +105,7 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
       {lines.map((line, index) => {
         const n = index + 1;
         return (
-          <div key={line.key} className="grid gap-3 sm:grid-cols-[1fr_8rem]">
+          <div key={line.key} className="grid items-end gap-3 sm:grid-cols-[1fr_8rem_auto]">
             <div className="space-y-1">
               <label htmlFor={`order-product-${line.key}`} className="block text-sm font-medium">
                 Product {n}
@@ -124,9 +138,29 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
                 onChange={(e) => updateLine(line.key, { quantity: e.target.value })}
               />
             </div>
+            {lines.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => removeLine(line.key)}
+                aria-label={`Remove line ${n}`}
+                className="rounded-md border border-zinc-300 px-3 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              >
+                Remove
+              </button>
+            ) : (
+              <span aria-hidden="true" />
+            )}
           </div>
         );
       })}
+
+      <button
+        type="button"
+        onClick={addLine}
+        className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+      >
+        Add line
+      </button>
 
       {error && (
         <p
