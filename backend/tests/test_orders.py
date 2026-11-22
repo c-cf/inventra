@@ -245,3 +245,24 @@ def test_update_status_validates_payload(client, auth_headers, make_product, pay
     response = client.patch(f"/orders/{order['id']}", json=payload, headers=auth_headers)
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("path", [[], ["paid"]])
+def test_cancelling_an_order_restores_stock(client, auth_headers, make_product, path):
+    keyboard = make_product("KB-001", quantity=10)
+    mouse = make_product("MS-001", quantity=5)
+    order = place(client, auth_headers, (keyboard["id"], 3), (mouse["id"], 5)).json()
+    for step in path:
+        set_status(client, auth_headers, order["id"], step)
+
+    response = set_status(client, auth_headers, order["id"], "cancelled")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "cancelled"
+    assert stock_of(client, auth_headers, keyboard["id"]) == 10
+    assert stock_of(client, auth_headers, mouse["id"]) == 5
+    movements = client.get(f"/products/{keyboard['id']}/movements", headers=auth_headers).json()
+    assert [(m["change"], m["reason"]) for m in movements] == [
+        (-3, f"order #{order['id']}"),
+        (3, f"order #{order['id']} cancelled"),
+    ]
