@@ -63,7 +63,7 @@ export default function ProductsPage() {
     setFilterLoading(true);
 
     try {
-      const products = await fetchProducts(state.token, value);
+      const products = await fetchProducts(state.token, { below: value });
 
       setProducts(() => products);
       setActiveBelow(value);

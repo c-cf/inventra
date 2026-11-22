@@ -78,9 +78,13 @@ export function fetchMe(token: string): Promise<User> {
   return request<User>("/auth/me", { token });
 }
 
-export function fetchProducts(token: string, below?: number): Promise<Product[]> {
-  const query = below === undefined ? "" : `?below=${encodeURIComponent(below)}`;
-  return request<Product[]>(`/products${query}`, { token });
+export type ProductQuery = { below?: number };
+
+export function fetchProducts(token: string, query: ProductQuery = {}): Promise<Product[]> {
+  const params = new URLSearchParams();
+  if (query.below !== undefined) params.set("below", String(query.below));
+  const search = params.toString();
+  return request<Product[]>(`/products${search ? `?${search}` : ""}`, { token });
 }
 
 export type ProductInput = {
