@@ -85,4 +85,13 @@ describe("NewOrderPage", () => {
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
     expect(getToken()).toBeNull();
   });
+
+  it("shows an error when the products cannot be loaded", async () => {
+    setToken("tok");
+    vi.mocked(fetchProducts).mockRejectedValue(new ApiError(500, "Database unavailable"));
+
+    render(<NewOrderPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
+  });
 });
