@@ -39,9 +39,24 @@ def login(
         max_age=get_settings().token_ttl_minutes * 60,
         httponly=True,
         samesite="lax",
+        secure=get_settings().cookie_secure,
         path="/",
     )
     return TokenResponse(access_token=token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout() -> Response:
+    """Clear the session cookie; page scripts cannot, because it is httpOnly."""
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.delete_cookie(
+        SESSION_COOKIE,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=get_settings().cookie_secure,
+    )
+    return response
 
 
 @router.get("/me", response_model=UserOut)

@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.config import get_settings
 from app.db import get_db
 from app.models import User
 from app.repositories import users
@@ -25,11 +26,26 @@ def _unauthorized() -> HTTPException:
     )
 
 
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _require_trusted_origin(request: Request) -> None:
+    """CSRF guard for cookie sessions: the browser always sends Origin on these
+    requests, and another site's page cannot make it one of ours. Bearer
+    requests need no check because a cross-site page cannot attach the header."""
+    if request.headers.get("origin") not in get_settings().cors_origins:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Cross-site request refused"
+        )
+
+
 def get_current_user(conn: DbConn, credentials: BearerCredentials, request: Request) -> User:
     """Authenticate with a bearer token (API clients) or the session cookie (browsers)."""
     token = credentials.credentials if credentials else request.cookies.get(SESSION_COOKIE)
     if token is None:
         raise _unauthorized()
+    if credentials is None and request.method not in SAFE_METHODS:
+        _require_trusted_origin(request)
     try:
         user_id = int(decode_access_token(token))
     except (TokenError, ValueError):
