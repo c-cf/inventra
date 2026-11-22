@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
+// Next 16.4 documents unstable_doesProxyMatch but still exports the middleware-era name.
 import {
   getRedirectUrl,
   isRewrite,
-  unstable_doesProxyMatch,
+  unstable_doesMiddlewareMatch as doesProxyMatch,
 } from "next/experimental/testing/server";
 import { describe, expect, it } from "vitest";
 
@@ -20,12 +21,12 @@ describe("proxy", () => {
   it.each(["/products", "/products/7", "/orders", "/orders/new", "/orders/3", "/users", "/account"])(
     "guards %s",
     (url) => {
-      expect(unstable_doesProxyMatch({ config, nextConfig, url })).toBe(true);
+      expect(doesProxyMatch({ config, nextConfig, url })).toBe(true);
     },
   );
 
   it.each(["/login", "/_next/static/chunk.js", "/favicon.ico"])("leaves %s alone", (url) => {
-    expect(unstable_doesProxyMatch({ config, nextConfig, url })).toBe(false);
+    expect(doesProxyMatch({ config, nextConfig, url })).toBe(false);
   });
 
   it("sends a request without a session cookie to /login", () => {
