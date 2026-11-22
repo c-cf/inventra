@@ -86,6 +86,7 @@ describe("OrderForm", () => {
   describe("validation", () => {
     it.each([
       ["a blank customer", "   ", "1", "2", "Customer is required."],
+      ["a customer name over 200 characters", "x".repeat(201), "1", "2", "Customer must be 200 characters or fewer."],
       ["a line without a product", "ACME", "", "2", "Choose a product for line 1."],
       ["a zero quantity", "ACME", "1", "0", "Quantity for line 1 must be a whole number of 1 or more."],
       ["a fractional quantity", "ACME", "1", "1.5", "Quantity for line 1 must be a whole number of 1 or more."],
