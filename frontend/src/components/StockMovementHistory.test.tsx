@@ -138,8 +138,10 @@ describe("StockMovementHistory", () => {
       );
     }
 
-    async function viewThenRefreshWith(outcome: Promise<StockMovement[]>) {
-      vi.mocked(fetchStockMovements).mockResolvedValueOnce([restock]).mockReturnValueOnce(outcome);
+    async function viewThenRefreshWith(outcome: () => Promise<StockMovement[]>) {
+      vi.mocked(fetchStockMovements)
+        .mockResolvedValueOnce([restock])
+        .mockImplementationOnce(outcome);
       const { rerender } = render(historyWith(0));
       const user = userEvent.setup();
       await view(user, "1");
@@ -149,14 +151,14 @@ describe("StockMovementHistory", () => {
     }
 
     it("shows only the error when the refresh fails", async () => {
-      await viewThenRefreshWith(Promise.reject(new ApiError(500, "Database unavailable")));
+      await viewThenRefreshWith(() => Promise.reject(new ApiError(500, "Database unavailable")));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
       expect(screen.queryByText("No stock movements found.")).not.toBeInTheDocument();
     });
 
     it("clears the error once a later refresh succeeds", async () => {
-      const rerender = await viewThenRefreshWith(
+      const rerender = await viewThenRefreshWith(() =>
         Promise.reject(new ApiError(500, "Database unavailable")),
       );
       await screen.findByRole("alert");
@@ -169,7 +171,7 @@ describe("StockMovementHistory", () => {
     });
 
     it("hands a 401 to onUnauthorized", async () => {
-      await viewThenRefreshWith(Promise.reject(new ApiError(401, "Not authenticated")));
+      await viewThenRefreshWith(() => Promise.reject(new ApiError(401, "Not authenticated")));
 
       await vi.waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
