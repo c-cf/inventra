@@ -33,23 +33,28 @@ export function useAuthedLoad<T>(loader: (token: string) => Promise<T>) {
     }
 
     let cancelled = false;
-    Promise.all([fetchMe(token), load(token)]).then(
-      ([user, data]) => {
-        if (!cancelled) setState({ status: "ready", token, user, data });
-      },
-      (error: unknown) => {
-        if (cancelled) return;
-        if (error instanceof ApiError && error.status === 401) {
-          clearToken();
-          router.replace("/login");
-          return;
-        }
-        setState({
-          status: "error",
-          message: error instanceof Error ? error.message : "Failed to load.",
-        });
-      },
-    );
+    // allSettled, not all: a rejected session must win over a page error that
+    // happens to settle first (e.g. a malformed id rejected without a request).
+    void Promise.allSettled([fetchMe(token), load(token)]).then(([user, data]) => {
+      if (cancelled) return;
+      if (user.status === "fulfilled" && data.status === "fulfilled") {
+        setState({ status: "ready", token, user: user.value, data: data.value });
+        return;
+      }
+      const errors = [user, data].flatMap((result) =>
+        result.status === "rejected" ? [result.reason as unknown] : [],
+      );
+      if (errors.some((error) => error instanceof ApiError && error.status === 401)) {
+        clearToken();
+        router.replace("/login");
+        return;
+      }
+      const [error] = errors;
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Failed to load.",
+      });
+    });
 
     return () => {
       cancelled = true;
