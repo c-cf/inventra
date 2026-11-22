@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductEditForm } from "@/components/ProductEditForm";
-import { updateProduct, type Product } from "@/lib/api";
+import { ApiError, updateProduct, type Product } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -77,5 +77,57 @@ describe("ProductEditForm", () => {
 
     expect(updateProduct).not.toHaveBeenCalled();
     expect(screen.getByRole("status")).toHaveTextContent("No changes to save.");
+  });
+
+  it.each([
+    [/sku/i, "", "SKU is required."],
+    [/sku/i, "x".repeat(65), "SKU must be 64 characters or fewer."],
+    [/name/i, "   ", "Name is required."],
+    [/name/i, "x".repeat(201), "Name must be 200 characters or fewer."],
+    [/price/i, "", "Price is required."],
+    [/price/i, "-1", "Price must be 0 or more."],
+  ])("rejects %s = %j without calling the API", async (label, value, message) => {
+    const user = renderForm();
+
+    await replace(user, label, value);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("shows the backend's message for a duplicate SKU", async () => {
+    vi.mocked(updateProduct).mockRejectedValue(new ApiError(409, "SKU already exists"));
+    const user = renderForm();
+
+    await replace(user, /sku/i, "MS-001");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("SKU already exists");
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it("hands a rejected token to onUnauthorized", async () => {
+    vi.mocked(updateProduct).mockRejectedValue(new ApiError(401, "Not authenticated"));
+    const user = renderForm();
+
+    await replace(user, /name/i, "Keyboard");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("disables saving while the request is in flight", async () => {
+    let resolve: (product: Product) => void = () => {};
+    vi.mocked(updateProduct).mockReturnValue(new Promise((done) => (resolve = done)));
+    const user = renderForm();
+
+    await replace(user, /name/i, "Keyboard");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+    resolve({ ...keyboard, name: "Keyboard" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled());
   });
 });
