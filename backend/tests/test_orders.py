@@ -282,3 +282,25 @@ def test_list_orders_filters_by_status(client, auth_headers, make_product):
 
 def test_list_orders_rejects_an_unknown_status(client, auth_headers):
     assert client.get("/orders?status=refunded", headers=auth_headers).status_code == 422
+
+
+HUGE = 10**20  # larger than SQLite's 64-bit INTEGER
+
+
+@pytest.mark.parametrize(
+    "item",
+    [{"product_id": 1, "quantity": HUGE}, {"product_id": HUGE, "quantity": 1}],
+)
+def test_create_order_rejects_out_of_range_integers(client, auth_headers, make_product, item):
+    make_product("KB-001", quantity=10)
+
+    response = client.post(
+        "/orders", json={"customer_name": "ACME", "items": [item]}, headers=auth_headers
+    )
+
+    assert response.status_code == 422
+
+
+def test_order_paths_reject_out_of_range_ids(client, auth_headers):
+    assert client.get(f"/orders/{HUGE}", headers=auth_headers).status_code == 422
+    assert set_status(client, auth_headers, HUGE, "paid").status_code == 422
