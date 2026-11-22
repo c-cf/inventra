@@ -158,4 +158,14 @@ describe("ProductDetail", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Product not found");
     expect(fetchProduct).not.toHaveBeenCalled();
   });
+
+  it("does not offer deletion to staff", async () => {
+    setToken("tok");
+    vi.mocked(fetchMe).mockResolvedValue({ id: 2, username: "bob", role: "staff" });
+
+    render(<ProductDetail />);
+
+    expect(await screen.findByRole("heading", { name: "Mechanical Keyboard" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete product" })).not.toBeInTheDocument();
+  });
 });

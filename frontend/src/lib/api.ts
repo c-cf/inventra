@@ -189,3 +189,35 @@ export function updateOrderStatus(
 ): Promise<Order> {
   return request<Order>(`/orders/${orderId}`, { method: "PATCH", body: { status }, token });
 }
+
+export const ROLES = ["admin", "staff"] as const;
+
+export type Role = (typeof ROLES)[number];
+
+export type UserSummary = { id: number; username: string; role: Role; created_at: string };
+
+export type UserInput = { username: string; password: string; role: Role };
+
+export function fetchUsers(token: string): Promise<UserSummary[]> {
+  return request<UserSummary[]>("/users", { token });
+}
+
+export function createUser(token: string, input: UserInput): Promise<UserSummary> {
+  return request<UserSummary>("/users", { method: "POST", body: input, token });
+}
+
+export function updateUserRole(token: string, userId: number, role: Role): Promise<UserSummary> {
+  return request<UserSummary>(`/users/${userId}`, { method: "PATCH", body: { role }, token });
+}
+
+export function changePassword(
+  token: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return request<void>("/auth/password", {
+    method: "POST",
+    body: { current_password: currentPassword, new_password: newPassword },
+    token,
+  });
+}
