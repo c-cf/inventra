@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import type { User } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+import { logout, type User } from "@/lib/api";
 
 type AppHeaderProps = {
   user: User | null;
@@ -13,8 +12,12 @@ type AppHeaderProps = {
 export function AppHeader({ user }: AppHeaderProps) {
   const router = useRouter();
 
-  function signOut() {
-    clearToken();
+  async function signOut() {
+    try {
+      await logout(); // the API clears the httpOnly session cookie
+    } catch {
+      // Offline or already signed out: the login page still works.
+    }
     router.push("/login");
   }
 
@@ -60,7 +63,7 @@ export function AppHeader({ user }: AppHeaderProps) {
           )}
           <button
             type="button"
-            onClick={signOut}
+            onClick={() => void signOut()}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
           >
             Sign out
