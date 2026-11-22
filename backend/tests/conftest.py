@@ -41,3 +41,17 @@ def auth_headers(user):
     from app.security import create_access_token
 
     return {"Authorization": f"Bearer {create_access_token(str(user.id))}"}
+
+
+@pytest.fixture()
+def staff(db):
+    return users.create(
+        db, username="bob", password_hash=hash_password("staffpass1"), role="staff"
+    )
+
+
+@pytest.fixture()
+def staff_headers(staff):
+    from app.security import create_access_token
+
+    return {"Authorization": f"Bearer {create_access_token(str(staff.id))}"}
