@@ -11,7 +11,6 @@ import {
   updateProduct,
   type Product,
 } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 const params = vi.hoisted(() => ({ current: { id: "1" } as Record<string, string> }));
@@ -55,14 +54,15 @@ afterEach(() => {
 });
 
 describe("ProductDetail", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<ProductDetail />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the products list and the stock on hand", async () => {
-    setToken("tok");
 
     render(<ProductDetail />);
 
@@ -75,7 +75,6 @@ describe("ProductDetail", () => {
   });
 
   it("updates the heading and breadcrumb after a save", async () => {
-    setToken("tok");
     vi.mocked(updateProduct).mockResolvedValue({ ...keyboard, sku: "KB-100", name: "Keyboard" });
     render(<ProductDetail />);
     const user = userEvent.setup();
@@ -92,7 +91,6 @@ describe("ProductDetail", () => {
   });
 
   it("deletes the product after confirmation and returns to the list", async () => {
-    setToken("tok");
     vi.mocked(deleteProduct).mockResolvedValue(undefined);
     render(<ProductDetail />);
 
@@ -106,7 +104,6 @@ describe("ProductDetail", () => {
   });
 
   it("keeps the product when the user declines", async () => {
-    setToken("tok");
     vi.mocked(window.confirm).mockReturnValue(false);
     render(<ProductDetail />);
 
@@ -116,7 +113,6 @@ describe("ProductDetail", () => {
   });
 
   it("explains why an ordered product cannot be deleted", async () => {
-    setToken("tok");
     vi.mocked(deleteProduct).mockRejectedValue(
       new ApiError(409, "Product has orders and cannot be deleted"),
     );
@@ -129,18 +125,15 @@ describe("ProductDetail", () => {
   });
 
   it("signs the user out when the delete is rejected with 401", async () => {
-    setToken("tok");
     vi.mocked(deleteProduct).mockRejectedValue(new ApiError(401, "Not authenticated"));
     render(<ProductDetail />);
 
     await userEvent.setup().click(await screen.findByRole("button", { name: "Delete product" }));
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 
   it("says when the product does not exist and links back", async () => {
-    setToken("tok");
     vi.mocked(fetchProduct).mockRejectedValue(new ApiError(404, "Product not found"));
 
     render(<ProductDetail />);
@@ -150,7 +143,6 @@ describe("ProductDetail", () => {
   });
 
   it("does not ask the API for an id that is not a number", async () => {
-    setToken("tok");
     params.current = { id: "abc" };
 
     render(<ProductDetail />);
@@ -160,7 +152,6 @@ describe("ProductDetail", () => {
   });
 
   it("does not offer deletion to staff", async () => {
-    setToken("tok");
     vi.mocked(fetchMe).mockResolvedValue({ id: 2, username: "bob", role: "staff" });
 
     render(<ProductDetail />);

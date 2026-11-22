@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProductsPage from "@/app/products/page";
 import { ApiError, createProduct, fetchMe, fetchProducts, type Product } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -43,7 +42,6 @@ beforeEach(() => {
   vi.mocked(fetchMe).mockReset().mockResolvedValue({ id: 1, username: "alice", role: "admin" });
   vi.mocked(fetchProducts).mockReset();
   vi.mocked(createProduct).mockReset();
-  setToken("tok");
 });
 
 describe("ProductsPage search", () => {
@@ -118,7 +116,6 @@ describe("ProductsPage search", () => {
     await search(user, "key");
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 });
 

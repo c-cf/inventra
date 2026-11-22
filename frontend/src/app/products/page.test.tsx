@@ -12,7 +12,6 @@ import {
   fetchProducts,
   fetchStockMovements,
 } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -61,15 +60,15 @@ beforeEach(() => {
 });
 
 describe("ProductsPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<ProductsPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
-    expect(fetchProducts).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows the signed-in user and the product list", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -85,7 +84,6 @@ describe("ProductsPage", () => {
   });
 
   it("clears a rejected token and redirects to /login", async () => {
-    setToken("stale");
 
     vi.mocked(fetchMe).mockRejectedValue(
       new ApiError(401, "Not authenticated"),
@@ -100,12 +98,9 @@ describe("ProductsPage", () => {
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith("/login");
     });
-
-    expect(getToken()).toBeNull();
   });
 
   it("shows an error when the backend cannot be reached", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockRejectedValue(
       new TypeError("Failed to fetch"),
@@ -125,7 +120,6 @@ describe("ProductsPage", () => {
   });
 
   it("adds a newly created product to the table", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -168,7 +162,6 @@ describe("ProductsPage", () => {
   });
 
   it("sends the user to /login when creating a product is rejected with 401", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -195,13 +188,10 @@ describe("ProductsPage", () => {
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith("/login");
     });
-
-    expect(getToken()).toBeNull();
   });
 
   // Inventory TDD: Low Stock Filter
   it("filters products by low stock threshold", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
 
@@ -235,7 +225,6 @@ describe("ProductsPage", () => {
 
   // Inventory TDD: Stock Adjustment
   it("adjusts product stock and updates the displayed quantity", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -285,7 +274,6 @@ describe("ProductsPage", () => {
 
 
 it("displays stock movement history for a selected product", async () => {
-  setToken("tok");
 
   vi.mocked(fetchMe).mockResolvedValue(alice);
   vi.mocked(fetchProducts).mockResolvedValue([keyboard]);

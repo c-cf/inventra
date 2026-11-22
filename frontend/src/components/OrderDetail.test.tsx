@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrderDetail } from "@/components/OrderDetail";
 import { ApiError, fetchMe, fetchOrder, updateOrderStatus, type Order } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 const params = vi.hoisted(() => ({ current: { id: "7" } as Record<string, string> }));
@@ -50,14 +49,15 @@ afterEach(() => {
 });
 
 describe("OrderDetail", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<OrderDetail />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the orders list", async () => {
-    setToken("tok");
 
     render(<OrderDetail />);
 
@@ -68,7 +68,6 @@ describe("OrderDetail", () => {
   });
 
   it("shows the customer, status, lines and total", async () => {
-    setToken("tok");
 
     render(<OrderDetail />);
 
@@ -83,7 +82,6 @@ describe("OrderDetail", () => {
   });
 
   it("updates the page after a status change", async () => {
-    setToken("tok");
     vi.mocked(updateOrderStatus).mockResolvedValue({ ...order, status: "paid" });
     render(<OrderDetail />);
     const user = userEvent.setup();
@@ -95,7 +93,6 @@ describe("OrderDetail", () => {
   });
 
   it("says when the order does not exist and links back", async () => {
-    setToken("tok");
     vi.mocked(fetchOrder).mockRejectedValue(new ApiError(404, "Order not found"));
 
     render(<OrderDetail />);
@@ -105,7 +102,6 @@ describe("OrderDetail", () => {
   });
 
   it("does not ask the API for an id that is not a number", async () => {
-    setToken("tok");
     params.current = { id: "abc" };
 
     render(<OrderDetail />);
@@ -115,18 +111,15 @@ describe("OrderDetail", () => {
   });
 
   it("signs the user out when a status change is rejected with 401", async () => {
-    setToken("tok");
     vi.mocked(updateOrderStatus).mockRejectedValue(new ApiError(401, "Not authenticated"));
     render(<OrderDetail />);
 
     await userEvent.setup().click(await screen.findByRole("button", { name: "Mark as paid" }));
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 
   it("signs out an expired session even when the id is not a number", async () => {
-    setToken("expired");
     params.current = { id: "abc" };
     // The session check takes a round trip; the malformed id is rejected at once.
     vi.mocked(fetchMe).mockImplementation(
@@ -139,6 +132,5 @@ describe("OrderDetail", () => {
     render(<OrderDetail />);
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 });

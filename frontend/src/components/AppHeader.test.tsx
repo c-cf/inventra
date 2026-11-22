@@ -1,17 +1,23 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppHeader } from "@/components/AppHeader";
-import { getToken, setToken } from "@/lib/auth";
+import { logout } from "@/lib/api";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  logout: vi.fn(),
+}));
+
 beforeEach(() => {
   window.localStorage.clear();
   router.push.mockReset();
+  vi.mocked(logout).mockReset().mockResolvedValue(undefined);
 });
 
 describe("AppHeader", () => {
@@ -22,14 +28,22 @@ describe("AppHeader", () => {
     expect(screen.getByText("admin")).toBeInTheDocument();
   });
 
-  it("forgets the token and goes to /login on sign out", async () => {
-    setToken("tok");
+  it("signs out through the API (which clears the httpOnly cookie) and goes to /login", async () => {
     render(<AppHeader user={{ id: 1, username: "alice", role: "admin" }} />);
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
 
-    expect(getToken()).toBeNull();
-    expect(router.push).toHaveBeenCalledWith("/login");
+    expect(logout).toHaveBeenCalledOnce();
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
+  });
+
+  it("still goes to /login when the sign-out request fails", async () => {
+    vi.mocked(logout).mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<AppHeader user={{ id: 1, username: "alice", role: "admin" }} />);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
   });
 
   it("links to the products and orders pages", () => {

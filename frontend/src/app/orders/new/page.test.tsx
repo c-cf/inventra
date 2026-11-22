@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import NewOrderPage from "@/app/orders/new/page";
 import { ApiError, createOrder, fetchMe, fetchProducts, type Order } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -48,14 +47,15 @@ async function placeOrder() {
 }
 
 describe("NewOrderPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<NewOrderPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the orders list", async () => {
-    setToken("tok");
 
     render(<NewOrderPage />);
 
@@ -65,7 +65,6 @@ describe("NewOrderPage", () => {
   });
 
   it("goes to the new order's page after placing it", async () => {
-    setToken("tok");
     vi.mocked(createOrder).mockResolvedValue(created);
     render(<NewOrderPage />);
 
@@ -76,18 +75,15 @@ describe("NewOrderPage", () => {
   });
 
   it("signs the user out when placing the order is rejected with 401", async () => {
-    setToken("tok");
     vi.mocked(createOrder).mockRejectedValue(new ApiError(401, "Not authenticated"));
     render(<NewOrderPage />);
 
     await placeOrder();
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 
   it("shows an error when the products cannot be loaded", async () => {
-    setToken("tok");
     vi.mocked(fetchProducts).mockRejectedValue(new ApiError(500, "Database unavailable"));
 
     render(<NewOrderPage />);
