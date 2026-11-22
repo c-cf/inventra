@@ -139,3 +139,8 @@ def record_movement(conn: sqlite3.Connection, product_id: int, change: int, reas
         "INSERT INTO stock_movements (product_id, change, reason) VALUES (?, ?, ?)",
         (product_id, change, reason),
     )
+
+
+def add_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> None:
+    """Put quantity back into stock. Does not commit."""
+    conn.execute("UPDATE products SET quantity = quantity + ? WHERE id = ?", (quantity, product_id))

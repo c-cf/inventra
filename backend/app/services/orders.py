@@ -74,6 +74,20 @@ def change_status(conn: sqlite3.Connection, order_id: int, new_status: str) -> O
         return None
     if new_status not in ALLOWED_TRANSITIONS[order.status]:
         raise InvalidStatusTransitionError(order.status, new_status)
-    orders.update_status(conn, order_id, new_status)
+    try:
+        orders.update_status(conn, order_id, new_status)
+        if new_status == "cancelled":
+            _restock(conn, order)
+    except Exception:
+        conn.rollback()
+        raise
     conn.commit()
     return orders.get_by_id(conn, order_id)
+
+
+def _restock(conn: sqlite3.Connection, order: Order) -> None:
+    for item in order.items:
+        products.add_stock(conn, item.product_id, item.quantity)
+        products.record_movement(
+            conn, item.product_id, item.quantity, f"order #{order.id} cancelled"
+        )
