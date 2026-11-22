@@ -5,7 +5,6 @@ import { type FormEvent, useState } from "react";
 import { ApiError, type Product, type ProductUpdate, updateProduct } from "@/lib/api";
 
 type ProductEditFormProps = {
-  token: string;
   product: Product;
   onSaved: (product: Product) => void;
   onUnauthorized: () => void;
@@ -42,7 +41,6 @@ function changedFields(product: Product, sku: string, name: string, price: strin
 }
 
 export function ProductEditForm({
-  token,
   product,
   onSaved,
   onUnauthorized,
@@ -70,7 +68,7 @@ export function ProductEditForm({
 
     setPending(true);
     try {
-      const saved = await updateProduct(token, product.id, changes);
+      const saved = await updateProduct(product.id, changes);
       onSaved(saved);
       setStatus("Saved.");
     } catch (err) {

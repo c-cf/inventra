@@ -71,7 +71,7 @@ describe("ProductDetail", () => {
     expect(within(breadcrumb).getByText("KB-001")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Mechanical Keyboard" })).toBeInTheDocument();
     expect(screen.getByText("25 in stock")).toBeInTheDocument();
-    expect(fetchProduct).toHaveBeenCalledWith("tok", 1);
+    expect(fetchProduct).toHaveBeenCalledWith(1);
   });
 
   it("updates the heading and breadcrumb after a save", async () => {
@@ -101,7 +101,7 @@ describe("ProductDetail", () => {
     expect(window.confirm).toHaveBeenCalledWith(
       "Delete KB-001 and its stock history? This cannot be undone.",
     );
-    expect(deleteProduct).toHaveBeenCalledWith("tok", 1);
+    expect(deleteProduct).toHaveBeenCalledWith(1);
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/products"));
   });
 

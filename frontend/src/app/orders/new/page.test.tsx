@@ -72,7 +72,7 @@ describe("NewOrderPage", () => {
     await placeOrder();
 
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/orders/7"));
-    expect(fetchProducts).toHaveBeenCalledWith("tok");
+    expect(fetchProducts).toHaveBeenCalledWith();
   });
 
   it("signs the user out when placing the order is rejected with 401", async () => {

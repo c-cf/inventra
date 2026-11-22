@@ -81,7 +81,7 @@ describe("ProductsPage", () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText("alice")).toBeInTheDocument();
-    expect(fetchProducts).toHaveBeenCalledWith("tok");
+    expect(fetchProducts).toHaveBeenCalledWith();
   });
 
   it("clears a rejected token and redirects to /login", async () => {
@@ -156,7 +156,7 @@ describe("ProductsPage", () => {
       screen.getByRole("button", { name: /add product/i }),
     );
 
-    expect(createProduct).toHaveBeenCalledWith("tok", {
+    expect(createProduct).toHaveBeenCalledWith({
       sku: "MS-002",
       name: "Mouse",
       price: 25,
@@ -225,7 +225,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(fetchProducts).toHaveBeenCalledWith("tok", { below: 5 });
+      expect(fetchProducts).toHaveBeenCalledWith({ below: 5 });
     });
 
     expect(
@@ -271,9 +271,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(adjustStock).toHaveBeenCalledWith(
-        "tok",
-        1,
+      expect(adjustStock).toHaveBeenCalledWith(1,
         5,
         "restock",
       );
@@ -325,7 +323,7 @@ it("displays stock movement history for a selected product", async () => {
   );
 
   await waitFor(() => {
-    expect(fetchStockMovements).toHaveBeenCalledWith("tok", 1);
+    expect(fetchStockMovements).toHaveBeenCalledWith(1);
   });
 
   expect(await screen.findByText("restock")).toBeInTheDocument();

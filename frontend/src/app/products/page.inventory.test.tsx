@@ -208,7 +208,7 @@ describe("ProductsPage low-stock filter controls", () => {
     await user.click(screen.getByRole("button", { name: "Clear Filter" }));
 
     expect(await screen.findByText("2 items")).toBeInTheDocument();
-    expect(fetchProducts).toHaveBeenLastCalledWith("tok", {});
+    expect(fetchProducts).toHaveBeenLastCalledWith({});
     expect(screen.getByLabelText("Low stock threshold")).toHaveValue(null);
   });
 

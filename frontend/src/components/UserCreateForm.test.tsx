@@ -15,7 +15,7 @@ const onCreated = vi.fn();
 const onUnauthorized = vi.fn();
 
 async function submit(username: string, password: string, role?: string) {
-  render(<UserCreateForm token="tok" onCreated={onCreated} onUnauthorized={onUnauthorized} />);
+  render(<UserCreateForm onCreated={onCreated} onUnauthorized={onUnauthorized} />);
   const user = userEvent.setup();
   if (username) await user.type(screen.getByLabelText("Username"), username);
   if (password) await user.type(screen.getByLabelText("Password"), password);
@@ -31,7 +31,7 @@ beforeEach(() => {
 
 describe("UserCreateForm", () => {
   it("defaults new accounts to staff", () => {
-    render(<UserCreateForm token="tok" onCreated={onCreated} onUnauthorized={onUnauthorized} />);
+    render(<UserCreateForm onCreated={onCreated} onUnauthorized={onUnauthorized} />);
 
     expect(screen.getByLabelText("Role")).toHaveValue("staff");
   });
@@ -42,7 +42,7 @@ describe("UserCreateForm", () => {
     await submit("  carol  ", "carolpass1", "admin");
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(carol));
-    expect(createUser).toHaveBeenCalledWith("tok", { username: "carol", password: "carolpass1", role: "admin" });
+    expect(createUser).toHaveBeenCalledWith({ username: "carol", password: "carolpass1", role: "admin" });
     expect(screen.getByLabelText("Username")).toHaveValue("");
     expect(screen.getByLabelText("Password")).toHaveValue("");
     expect(screen.getByLabelText("Role")).toHaveValue("staff");

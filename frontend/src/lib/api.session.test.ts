@@ -13,8 +13,8 @@ afterEach(() => {
 describe("cookie session", () => {
   it.each([
     ["login", () => login("alice", "secret123")],
-    ["fetchMe", () => fetchMe("tok")],
-    ["fetchProducts", () => fetchProducts("tok")],
+    ["fetchMe", () => fetchMe()],
+    ["fetchProducts", () => fetchProducts()],
   ])("%s sends the session cookie and no Authorization header", async (_name, call) => {
     const fetchMock = vi.fn().mockResolvedValue(json({ access_token: "x", token_type: "bearer" }));
     vi.stubGlobal("fetch", fetchMock);

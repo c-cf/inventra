@@ -25,7 +25,6 @@ const onUnauthorized = vi.fn();
 function renderForm() {
   render(
     <ProductEditForm
-      token="tok"
       product={keyboard}
       onSaved={onSaved}
       onUnauthorized={onUnauthorized}
@@ -65,7 +64,7 @@ describe("ProductEditForm", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved));
-    expect(updateProduct).toHaveBeenCalledWith("tok", 1, { name: "Keyboard", price: 79.5 });
+    expect(updateProduct).toHaveBeenCalledWith(1, { name: "Keyboard", price: 79.5 });
     expect(screen.getByRole("status")).toHaveTextContent("Saved.");
   });
 
@@ -151,6 +150,6 @@ describe("ProductEditForm", () => {
     await replace(user, /sku/i, "  KB-002  ");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-    await waitFor(() => expect(updateProduct).toHaveBeenCalledWith("tok", 1, { sku: "KB-002" }));
+    await waitFor(() => expect(updateProduct).toHaveBeenCalledWith(1, { sku: "KB-002" }));
   });
 });

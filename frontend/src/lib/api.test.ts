@@ -63,7 +63,7 @@ describe("fetchProducts", () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(products));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchProducts("tok");
+    const result = await fetchProducts();
 
     expect(result).toEqual(products);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -77,14 +77,14 @@ describe("fetchProducts", () => {
       vi.fn().mockResolvedValue(jsonResponse({ detail: "Not authenticated" }, 401)),
     );
 
-    await expect(fetchProducts("expired")).rejects.toMatchObject({ status: 401 });
+    await expect(fetchProducts()).rejects.toMatchObject({ status: 401 });
   });
 
   it("filters products using the below query parameter", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchProducts("tok", { below: 5 });
+    await fetchProducts({ below: 5 });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
@@ -100,7 +100,7 @@ describe("createProduct", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const input = { sku: "MS-002", name: "Mouse", price: 25, quantity: 10 };
-    const result = await createProduct("tok", input);
+    const result = await createProduct(input);
 
     expect(result).toEqual(created);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -126,7 +126,7 @@ describe("createProduct", () => {
       ),
     );
 
-    const promise = createProduct("tok", { sku: "", name: "Mouse", price: -1, quantity: 0 });
+    const promise = createProduct({ sku: "", name: "Mouse", price: -1, quantity: 0 });
 
     await expect(promise).rejects.toMatchObject({
       status: 422,
@@ -149,7 +149,7 @@ describe("adjustStock", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await adjustStock("tok", 3, 5, "restock");
+    await adjustStock(3, 5, "restock");
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
@@ -168,7 +168,7 @@ describe("adjustStock", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await adjustStock("tok", 3, -2, "sold");
+    await adjustStock(3, -2, "sold");
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
@@ -203,7 +203,7 @@ describe("fetchStockMovements", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchStockMovements("tok", 3);
+    const result = await fetchStockMovements(3);
 
     const [url, init] = fetchMock.mock.calls[0] as [
       string,
@@ -223,7 +223,7 @@ describe("fetchStockMovements", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchStockMovements("tok", 3);
+    const result = await fetchStockMovements(3);
 
     expect(result).toEqual([]);
   });
@@ -234,7 +234,7 @@ describe("fetchMe", () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 1, username: "alice", role: "admin" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const user = await fetchMe("tok");
+    const user = await fetchMe();
 
     expect(user).toEqual({ id: 1, username: "alice", role: "admin" });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -250,7 +250,7 @@ describe("error responses", () => {
       vi.fn().mockResolvedValue(new Response("<html>Bad Gateway</html>", { status: 502 })),
     );
 
-    await expect(fetchMe("tok")).rejects.toMatchObject({
+    await expect(fetchMe()).rejects.toMatchObject({
       status: 502,
       message: "Request failed with status 502",
     });
@@ -259,7 +259,7 @@ describe("error responses", () => {
   it("falls back to a generic message when the JSON body has no detail", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "boom" }, 500)));
 
-    await expect(fetchMe("tok")).rejects.toMatchObject({
+    await expect(fetchMe()).rejects.toMatchObject({
       status: 500,
       message: "Request failed with status 500",
     });

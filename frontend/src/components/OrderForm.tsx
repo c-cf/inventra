@@ -6,7 +6,6 @@ import { ApiError, createOrder, type Order, type Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 
 type OrderFormProps = {
-  token: string;
   products: Product[];
   onCreated: (order: Order) => void;
   onUnauthorized: () => void;
@@ -53,7 +52,6 @@ function validate(customer: string, lines: Line[], products: Product[]): string 
 }
 
 export function OrderForm({
-  token,
   products,
   onCreated,
   onUnauthorized,
@@ -97,7 +95,7 @@ export function OrderForm({
     setPending(true);
     let placed = false;
     try {
-      const order = await createOrder(token, {
+      const order = await createOrder({
         customer_name: customer.trim(),
         items: lines.map((line) => ({
           product_id: Number(line.productId),

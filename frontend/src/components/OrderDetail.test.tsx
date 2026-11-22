@@ -64,7 +64,7 @@ describe("OrderDetail", () => {
     const breadcrumb = await screen.findByRole("navigation", { name: "Breadcrumb" });
     expect(within(breadcrumb).getByRole("link", { name: "Orders" })).toHaveAttribute("href", "/orders");
     expect(within(breadcrumb).getByText("Order #7")).toHaveAttribute("aria-current", "page");
-    expect(fetchOrder).toHaveBeenCalledWith("tok", 7);
+    expect(fetchOrder).toHaveBeenCalledWith(7);
   });
 
   it("shows the customer, status, lines and total", async () => {

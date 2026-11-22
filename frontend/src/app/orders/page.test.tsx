@@ -57,7 +57,7 @@ describe("OrdersPage", () => {
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "New order" })).toHaveAttribute("href", "/orders/new");
-    expect(fetchOrders).toHaveBeenCalledWith("tok");
+    expect(fetchOrders).toHaveBeenCalledWith();
   });
 
   it("filters by status and back to all", async () => {
@@ -72,11 +72,11 @@ describe("OrdersPage", () => {
 
     await user.selectOptions(screen.getByLabelText("Status"), "paid");
     await waitFor(() => expect(screen.queryByRole("link", { name: "#1" })).not.toBeInTheDocument());
-    expect(fetchOrders).toHaveBeenLastCalledWith("tok", "paid");
+    expect(fetchOrders).toHaveBeenLastCalledWith("paid");
 
     await user.selectOptions(screen.getByLabelText("Status"), "");
     expect(await screen.findByRole("link", { name: "#1" })).toBeInTheDocument();
-    expect(fetchOrders).toHaveBeenLastCalledWith("tok", undefined);
+    expect(fetchOrders).toHaveBeenLastCalledWith(undefined);
   });
 
   it("clears a rejected token and redirects to /login", async () => {

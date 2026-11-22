@@ -36,7 +36,7 @@ export default function ProductsPage() {
     state,
     setData: setProducts,
     signOut: handleUnauthorized,
-  } = useAuthedLoad((token) => fetchProducts(token));
+  } = useAuthedLoad(() => fetchProducts());
 
   const [threshold, setThreshold] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -70,7 +70,7 @@ export default function ProductsPage() {
     setFilterLoading(true);
 
     try {
-      const products = await fetchProducts(state.token, toQuery(next));
+      const products = await fetchProducts(toQuery(next));
 
       setProducts(() => products);
       activeRef.current = next;
@@ -138,7 +138,6 @@ export default function ProductsPage() {
 
         {/* Product Creation */}
         <ProductForm
-          token={state.token}
           onCreated={handleCreated}
           onUnauthorized={handleUnauthorized}
         />
@@ -232,14 +231,12 @@ export default function ProductsPage() {
 
         {/* Stock Adjustment */}
         <StockAdjustmentForm
-          token={state.token}
           products={state.data}
           onAdjusted={handleAdjusted}
           onUnauthorized={handleUnauthorized}
         />
 
         <StockMovementHistory
-          token={state.token}
           products={state.data}
           onUnauthorized={handleUnauthorized}
           refreshKey={movementsVersion}

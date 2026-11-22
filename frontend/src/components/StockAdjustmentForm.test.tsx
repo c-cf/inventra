@@ -26,7 +26,6 @@ const onUnauthorized = vi.fn();
 function renderForm() {
   return render(
     <StockAdjustmentForm
-      token="tok"
       products={[keyboard]}
       onAdjusted={onAdjusted}
       onUnauthorized={onUnauthorized}
@@ -147,7 +146,7 @@ describe("StockAdjustmentForm", () => {
     await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
 
     await vi.waitFor(() => expect(onAdjusted).toHaveBeenCalledWith({ ...keyboard, quantity: 30 }));
-    expect(adjustStock).toHaveBeenCalledWith("tok", 1, 5, "restock");
+    expect(adjustStock).toHaveBeenCalledWith(1, 5, "restock");
     expect(screen.getByLabelText("Stock change")).toHaveValue(null);
     expect(screen.getByLabelText("Adjustment reason")).toHaveValue("");
   });
@@ -159,7 +158,6 @@ describe("StockAdjustmentForm", () => {
     await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
     rerender(
       <StockAdjustmentForm
-        token="tok"
         products={[]}
         onAdjusted={onAdjusted}
         onUnauthorized={onUnauthorized}

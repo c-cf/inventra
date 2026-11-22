@@ -54,7 +54,7 @@ describe("ProductsPage search", () => {
     await search(user, "key");
 
     await waitFor(() => expect(screen.queryByRole("link", { name: "MS-001" })).not.toBeInTheDocument());
-    expect(fetchProducts).toHaveBeenLastCalledWith("tok", { q: "key" });
+    expect(fetchProducts).toHaveBeenLastCalledWith({ q: "key" });
   });
 
   it("keeps the search when the low-stock filter is applied", async () => {
@@ -66,7 +66,7 @@ describe("ProductsPage search", () => {
     await user.type(screen.getByLabelText("Low stock threshold"), "5");
     await user.click(screen.getByRole("button", { name: "Filter" }));
 
-    await waitFor(() => expect(fetchProducts).toHaveBeenLastCalledWith("tok", { below: 5, q: "key" }));
+    await waitFor(() => expect(fetchProducts).toHaveBeenLastCalledWith({ below: 5, q: "key" }));
   });
 
   it("clearing the search keeps the low-stock filter", async () => {
@@ -82,7 +82,7 @@ describe("ProductsPage search", () => {
     await waitFor(() => expect(fetchProducts).toHaveBeenCalledTimes(3));
     await user.click(screen.getByRole("button", { name: "Clear search" }));
 
-    await waitFor(() => expect(fetchProducts).toHaveBeenLastCalledWith("tok", { below: 5 }));
+    await waitFor(() => expect(fetchProducts).toHaveBeenLastCalledWith({ below: 5 }));
     expect(screen.getByLabelText("Search products")).toHaveValue("");
   });
 

@@ -30,7 +30,7 @@ describe("ProductForm", () => {
     const created = { id: 7, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-09" };
     createProductMock.mockResolvedValue(created);
     const onCreated = vi.fn();
-    render(<ProductForm token="tok" onCreated={onCreated} />);
+    render(<ProductForm onCreated={onCreated} />);
 
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/sku/i), "MS-002");
@@ -39,7 +39,7 @@ describe("ProductForm", () => {
     await user.type(screen.getByLabelText(/quantity/i), "10");
     await user.click(screen.getByRole("button", { name: /add product/i }));
 
-    expect(createProductMock).toHaveBeenCalledWith("tok", {
+    expect(createProductMock).toHaveBeenCalledWith({
       sku: "MS-002",
       name: "Mouse",
       price: 25,
@@ -49,7 +49,7 @@ describe("ProductForm", () => {
   });
 
   it("requires a SKU and does not call the API without one", async () => {
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ name: "Mouse", price: "25", quantity: "10" });
 
@@ -58,7 +58,7 @@ describe("ProductForm", () => {
   });
 
   it("rejects a negative price", async () => {
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "-5", quantity: "10" });
 
@@ -67,7 +67,7 @@ describe("ProductForm", () => {
   });
 
   it("rejects a quantity that is not a whole number", async () => {
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "25", quantity: "2.5" });
 
@@ -76,7 +76,7 @@ describe("ProductForm", () => {
   });
 
   it("requires a name and does not call the API without one", async () => {
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "MS-002", price: "25", quantity: "10" });
 
@@ -87,7 +87,7 @@ describe("ProductForm", () => {
   it("shows the backend's message when the SKU already exists", async () => {
     createProductMock.mockRejectedValue(new ApiError(409, "SKU already exists"));
     const onCreated = vi.fn();
-    render(<ProductForm token="tok" onCreated={onCreated} />);
+    render(<ProductForm onCreated={onCreated} />);
 
     await fillAndSubmit({ sku: "KB-001", name: "Keyboard", price: "89", quantity: "5" });
 
@@ -96,7 +96,7 @@ describe("ProductForm", () => {
   });
 
   it("requires a price and does not call the API without one", async () => {
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "MS-002", name: "Mouse", quantity: "10" });
 
@@ -107,11 +107,11 @@ describe("ProductForm", () => {
   it("trims the SKU and name before submitting", async () => {
     const created = { id: 8, sku: "KB-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-18" };
     createProductMock.mockResolvedValue(created);
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "  KB-002  ", name: "  Mouse  ", price: "25", quantity: "10" });
 
-    expect(createProductMock).toHaveBeenCalledWith("tok", {
+    expect(createProductMock).toHaveBeenCalledWith({
       sku: "KB-002",
       name: "Mouse",
       price: 25,
@@ -123,7 +123,7 @@ describe("ProductForm", () => {
     const created = { id: 9, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-22" };
     let resolveCreate!: (value: Product) => void;
     createProductMock.mockReturnValue(new Promise<Product>((resolve) => (resolveCreate = resolve)));
-    render(<ProductForm token="tok" onCreated={vi.fn()} />);
+    render(<ProductForm onCreated={vi.fn()} />);
 
     await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "25", quantity: "10" });
 
@@ -138,7 +138,7 @@ describe("ProductForm", () => {
     const created = { id: 10, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-22" };
     createProductMock.mockResolvedValue(created);
     const onCreated = vi.fn();
-    render(<ProductForm token="tok" onCreated={onCreated} />);
+    render(<ProductForm onCreated={onCreated} />);
 
     await fillAndSubmit({ sku: "MS-002", name: "Mouse", price: "25", quantity: "10" });
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
