@@ -86,3 +86,37 @@ test("a second order can be placed right after the first (#25)", async ({ page }
   await expect(page.getByRole("heading", { level: 1 })).toContainText("pending");
 });
 
+
+test("the status filter still applies after coming back from an order (#37)", async ({ page }) => {
+  const sku = uniqueSku("E2E-FLT");
+  await addProduct(page, { sku, name: "E2E Filter Widget", price: "4", quantity: "5" });
+  const stays = `E2E Stays ${uniqueSku("C")}`;
+  const paid = `E2E Paid ${uniqueSku("C")}`;
+  await placeOrder(page, stays, [{ label: `E2E Filter Widget (${sku}) · 5 in stock`, quantity: "1" }]);
+  await placeOrder(page, paid, [{ label: `E2E Filter Widget (${sku}) · 4 in stock`, quantity: "1" }]);
+  await page.getByRole("button", { name: "Mark as paid" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("paid");
+
+  // The paid order only shows once the list has been reloaded, and only goes once the
+  // filter has been applied: each step waits for its own response.
+  await page.getByRole("banner").getByRole("link", { name: "Orders", exact: true }).click();
+  const paidRow = page.getByRole("row").filter({ hasText: paid });
+  await expect(paidRow).toBeVisible();
+  await page.getByRole("combobox", { name: "Status" }).selectOption("pending");
+  await expect(paidRow).toHaveCount(0);
+  const staysRow = page.getByRole("row").filter({ hasText: stays });
+  await expect(staysRow).toBeVisible();
+
+  // Pay it on its own page: on the way back, a list reloaded for "pending" no longer has it.
+  await staysRow.getByRole("link").click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("pending");
+  await page.getByRole("button", { name: "Mark as paid" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("paid");
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Orders" }).click();
+
+  // A role locator skips the hidden list, so this passes only once /orders is shown again;
+  // from then on the list still holds the order until the reload replaces it.
+  await expect(page.getByRole("combobox", { name: "Status" })).toHaveValue("pending");
+  await expect(staysRow).toHaveCount(0);
+  await expect(paidRow).toHaveCount(0);
+});

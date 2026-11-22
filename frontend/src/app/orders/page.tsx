@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { OrderTable } from "@/components/OrderTable";
 import { PageStatus } from "@/components/PageStatus";
-import { ApiError, fetchOrders, ORDER_STATUSES } from "@/lib/api";
+import { ApiError, fetchOrders, ORDER_STATUSES, type OrderStatus } from "@/lib/api";
+import { loadForLatest } from "@/lib/loadForLatest";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function OrdersPage() {
-  const { state, setData, signOut } = useAuthedLoad(() => fetchOrders());
+  // The status whose orders are listed. The select changes before the request goes out,
+  // so it can be ahead of the list; this only changes once the orders have arrived.
+  const appliedStatus = useRef<OrderStatus | undefined>(undefined);
+
+  // Next keeps this page mounted while hidden and reloads it when the user comes back.
+  // Reload with the applied status, and again if it changed while the request was out,
+  // so the list never falls back to another status than the select shows (#37).
+  const { state, setData, signOut } = useAuthedLoad(() =>
+    loadForLatest(appliedStatus, fetchOrders),
+  );
   const [statusFilter, setStatusFilter] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filtering, setFiltering] = useState(false);
@@ -20,11 +30,13 @@ export default function OrdersPage() {
     const previous = statusFilter;
     setStatusFilter(value);
     setFilterError("");
-    // One request at a time (the select is disabled meanwhile), so responses cannot race.
+    // One filter request at a time (the select is disabled meanwhile). A come-back reload
+    // can still be out; it reads appliedStatus and asks again if this one changes it.
     setFiltering(true);
     try {
       const status = ORDER_STATUSES.find((candidate) => candidate === value);
       const orders = await fetchOrders(status);
+      appliedStatus.current = status;
       setData(() => orders);
     } catch (error) {
       setStatusFilter(previous);
