@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import NewOrderPage from "@/app/orders/new/page";
 import { ApiError, createOrder, fetchMe, fetchProducts, type Order } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -52,7 +53,7 @@ describe("NewOrderPage", () => {
 
     render(<NewOrderPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows a breadcrumb back to the orders list", async () => {
@@ -80,7 +81,7 @@ describe("NewOrderPage", () => {
 
     await placeOrder();
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows an error when the products cannot be loaded", async () => {

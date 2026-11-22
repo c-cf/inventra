@@ -68,4 +68,27 @@ describe("LoginForm", () => {
       expect(screen.getByRole("button", { name: /sign in/i })).not.toBeDisabled(),
     );
   });
+
+  it("clears the fields after a successful sign-in", async () => {
+    // Next keeps the login page mounted (hidden) after navigating away, so whatever is
+    // left in the form would greet the next person after a sign-out (#24).
+    loginMock.mockResolvedValue({ access_token: "tok", token_type: "bearer" });
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    await fillAndSubmit("alice", "secret123");
+
+    await waitFor(() => expect(screen.getByLabelText(/password/i)).toHaveValue(""));
+    expect(screen.getByLabelText(/username/i)).toHaveValue("");
+  });
+
+  it("keeps the username after a failed sign-in so it can be corrected", async () => {
+    loginMock.mockRejectedValue(new ApiError(401, "Invalid username or password"));
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    await fillAndSubmit("alice", "wrong");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid username or password");
+    expect(screen.getByLabelText(/username/i)).toHaveValue("alice");
+  });
 });
+

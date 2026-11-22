@@ -33,6 +33,7 @@ test("an admin adds a staff member who can then sign in and change their passwor
   await expect(page.getByRole("cell", { name: username })).toBeVisible();
   await expect(page.getByLabel(`Role for ${username}`)).toHaveValue("staff");
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/); // sign-out is a full page load; let it finish
 
   await signIn(page, { username, password: "first-password" });
   await page.getByRole("banner").getByRole("link", { name: new RegExp(username) }).click();
@@ -42,6 +43,7 @@ test("an admin adds a staff member who can then sign in and change their passwor
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Password changed." })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/login$/); // sign-out is a full page load; let it finish
 
   await signIn(page, { username, password: "second-password" });
   await expect(page.getByRole("banner")).toContainText(username);
