@@ -127,10 +127,14 @@ _LIKE_ESCAPE = "!"
 
 
 def _like_pattern(text: str) -> str:
-    """Case-insensitive substring pattern in which %, _ and ! match themselves."""
+    """Substring pattern in which %, _ and ! match themselves.
+
+    SQLite's LIKE already ignores case for ASCII letters. Lower-casing here (or
+    with SQLite's ASCII-only lower()) would stop non-ASCII names such as "Écran"
+    matching even when typed exactly.
+    """
     escaped = (
-        text.lower()
-        .replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        text.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
         .replace("%", f"{_LIKE_ESCAPE}%")
         .replace("_", f"{_LIKE_ESCAPE}_")
     )
@@ -141,7 +145,7 @@ def _filters(q: str | None, below: int | None) -> tuple[str, list[object]]:
     clauses: list[str] = []
     params: list[object] = []
     if q:
-        clauses.append("(lower(name) LIKE ? ESCAPE '!' OR lower(sku) LIKE ? ESCAPE '!')")
+        clauses.append("(name LIKE ? ESCAPE '!' OR sku LIKE ? ESCAPE '!')")
         params += [_like_pattern(q), _like_pattern(q)]
     if below is not None:
         clauses.append("quantity < ?")
