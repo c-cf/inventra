@@ -39,4 +39,25 @@ describe("AppHeader", () => {
     expect(within(nav).getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
     expect(within(nav).getByRole("link", { name: "Orders" })).toHaveAttribute("href", "/orders");
   });
+
+  it("shows admins a link to user management", () => {
+    render(<AppHeader user={{ id: 1, username: "alice", role: "admin" }} />);
+
+    expect(within(screen.getByRole("navigation")).getByRole("link", { name: "Users" })).toHaveAttribute(
+      "href",
+      "/users",
+    );
+  });
+
+  it("hides user management from staff", () => {
+    render(<AppHeader user={{ id: 2, username: "bob", role: "staff" }} />);
+
+    expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
+  });
+
+  it("links the signed-in user to their account page", () => {
+    render(<AppHeader user={{ id: 2, username: "bob", role: "staff" }} />);
+
+    expect(screen.getByRole("link", { name: /bob/ })).toHaveAttribute("href", "/account");
+  });
 });

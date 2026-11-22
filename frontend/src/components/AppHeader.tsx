@@ -37,15 +37,26 @@ export function AppHeader({ user }: AppHeaderProps) {
           >
             Orders
           </Link>
+          {user?.role === "admin" && (
+            <Link
+              href="/users"
+              className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Users
+            </Link>
+          )}
         </nav>
         <div className="flex items-center gap-4 text-sm">
           {user && (
-            <span className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+            <Link
+              href="/account"
+              className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
               <span>{user.username}</span>
               <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs uppercase tracking-wide dark:bg-zinc-800">
                 {user.role}
               </span>
-            </span>
+            </Link>
           )}
           <button
             type="button"

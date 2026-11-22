@@ -87,6 +87,7 @@ export function ProductDetail() {
           />
         </section>
 
+        {state.user.role === "admin" && (
         <section className="space-y-3 rounded-lg border border-red-200 p-6 dark:border-red-900">
           <h2 className="text-lg font-semibold">Delete product</h2>
           <p className="text-sm text-zinc-500">
@@ -107,6 +108,7 @@ export function ProductDetail() {
             </p>
           )}
         </section>
+        )}
       </main>
     </div>
   );
