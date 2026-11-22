@@ -35,4 +35,10 @@ describe("ProductTable", () => {
     expect(rows[1]).toHaveTextContent(/out of stock/i);
     expect(rows[0]).not.toHaveTextContent(/out of stock/i);
   });
+
+  it("links each product to its detail page", () => {
+    render(<ProductTable products={[{ id: 7, sku: "KB-001", name: "Keyboard", price: 89, quantity: 3, created_at: "x" }]} />);
+
+    expect(screen.getByRole("link", { name: "KB-001" })).toHaveAttribute("href", "/products/7");
+  });
 });

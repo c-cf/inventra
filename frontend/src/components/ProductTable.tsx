@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 
@@ -28,7 +30,14 @@ export function ProductTable({ products }: ProductTableProps) {
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {products.map((product) => (
             <tr key={product.id}>
-              <td className="px-4 py-3 font-mono text-xs">{product.sku}</td>
+              <td className="px-4 py-3 font-mono text-xs">
+                <Link
+                  href={`/products/${product.id}`}
+                  className="text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  {product.sku}
+                </Link>
+              </td>
               <td className="px-4 py-3">{product.name}</td>
               <td className="px-4 py-3 text-right tabular-nums">{formatCurrency(product.price)}</td>
               <td className="px-4 py-3 text-right tabular-nums">

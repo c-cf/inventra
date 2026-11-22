@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import users
@@ -10,13 +10,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, conn: DbConn) -> TokenResponse:
+def login(payload: LoginRequest, conn: DbConn, request: Request) -> TokenResponse:
+    throttle = request.app.state.login_throttle
+    key = (request.client.host if request.client else "unknown", payload.username.lower())
+    retry_after = throttle.begin(key)
+    if retry_after:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
     user = auth_service.authenticate(conn, payload.username, payload.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
+    throttle.record_success(key)
     return TokenResponse(access_token=create_access_token(str(user.id)))
 
 

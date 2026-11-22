@@ -225,7 +225,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(fetchProducts).toHaveBeenCalledWith("tok", 5);
+      expect(fetchProducts).toHaveBeenCalledWith("tok", { below: 5 });
     });
 
     expect(

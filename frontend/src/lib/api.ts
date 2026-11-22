@@ -52,6 +52,7 @@ async function request<T>(path: string, { method = "GET", body, token }: Request
   if (!response.ok) {
     throw new ApiError(response.status, await errorDetail(response));
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -78,9 +79,15 @@ export function fetchMe(token: string): Promise<User> {
   return request<User>("/auth/me", { token });
 }
 
-export function fetchProducts(token: string, below?: number): Promise<Product[]> {
-  const query = below === undefined ? "" : `?below=${encodeURIComponent(below)}`;
-  return request<Product[]>(`/products${query}`, { token });
+export type ProductQuery = { below?: number; q?: string };
+
+export function fetchProducts(token: string, query: ProductQuery = {}): Promise<Product[]> {
+  const params = new URLSearchParams();
+  if (query.below !== undefined) params.set("below", String(query.below));
+  const search = query.q?.trim();
+  if (search) params.set("q", search);
+  const queryString = params.toString();
+  return request<Product[]>(`/products${queryString ? `?${queryString}` : ""}`, { token });
 }
 
 export type ProductInput = {
@@ -92,6 +99,24 @@ export type ProductInput = {
 
 export function createProduct(token: string, input: ProductInput): Promise<Product> {
   return request<Product>("/products", { method: "POST", body: input, token });
+}
+
+export function fetchProduct(token: string, productId: number): Promise<Product> {
+  return request<Product>(`/products/${productId}`, { token });
+}
+
+export type ProductUpdate = Partial<Pick<Product, "sku" | "name" | "price">>;
+
+export function updateProduct(
+  token: string,
+  productId: number,
+  changes: ProductUpdate,
+): Promise<Product> {
+  return request<Product>(`/products/${productId}`, { method: "PATCH", body: changes, token });
+}
+
+export function deleteProduct(token: string, productId: number): Promise<void> {
+  return request<void>(`/products/${productId}`, { method: "DELETE", token });
 }
 
 export function adjustStock(
