@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Activity, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,5 +102,46 @@ describe("ProductsPage when the user comes back to it (#35)", () => {
 
     expect(fetchProducts).toHaveBeenLastCalledWith({ q: "mouse" });
     await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
+  });
+});
+
+function deferred<T>() {
+  let resolve: (value: T) => void = () => {};
+  const promise = new Promise<T>((done) => (resolve = done));
+  return { promise, resolve };
+}
+
+describe("ProductsPage when filters change while the reload is on its way (#35)", () => {
+  it("keeps a search cleared before the reload lands", async () => {
+    const { rerender, user } = await renderPage();
+    await user.type(screen.getByLabelText("Search products"), "mouse");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
+    const reload = deferred<Product[]>();
+    vi.mocked(fetchProducts).mockReturnValueOnce(reload.promise);
+
+    await leaveAndComeBack(rerender);
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]));
+    await act(async () => reload.resolve([mouse])); // the reload for "mouse" lands last
+
+    await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]));
+  });
+
+  it("honours a search that was still on its way when the user left", async () => {
+    const { rerender, user } = await renderPage();
+    const search = deferred<Product[]>();
+    const reload = deferred<Product[]>();
+    vi.mocked(fetchProducts).mockReturnValueOnce(search.promise).mockReturnValueOnce(reload.promise);
+    await user.type(screen.getByLabelText("Search products"), "mouse");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    await leaveAndComeBack(rerender); // asks with the filters applied so far: none
+    await act(async () => search.resolve([mouse]));
+    await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
+    await act(async () => reload.resolve(catalog)); // the unfiltered reload lands last
+
+    await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
+    expect(fetchProducts).toHaveBeenLastCalledWith({ q: "mouse" });
   });
 });
