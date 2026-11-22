@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,5 +30,13 @@ describe("AppHeader", () => {
 
     expect(getToken()).toBeNull();
     expect(router.push).toHaveBeenCalledWith("/login");
+  });
+
+  it("links to the products and orders pages", () => {
+    render(<AppHeader user={{ id: 1, username: "alice", role: "admin" }} />);
+
+    const nav = screen.getByRole("navigation");
+    expect(within(nav).getByRole("link", { name: "Products" })).toHaveAttribute("href", "/products");
+    expect(within(nav).getByRole("link", { name: "Orders" })).toHaveAttribute("href", "/orders");
   });
 });
