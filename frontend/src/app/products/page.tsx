@@ -19,6 +19,11 @@ import {
 
 import { clearToken, getToken } from "@/lib/auth";
 
+/** Whether a product belongs in the list while a low-stock filter is active. */
+function matchesFilter(product: Product, below: number | null): boolean {
+  return below === null || product.quantity < below;
+}
+
 type PageState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -39,6 +44,8 @@ export default function ProductsPage() {
   const [threshold, setThreshold] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
+  const [activeBelow, setActiveBelow] = useState<number | null>(null);
+  const [movementsVersion, setMovementsVersion] = useState(0);
 
   useEffect(() => {
     const token = getToken();
@@ -97,6 +104,8 @@ export default function ProductsPage() {
   }
 
   function handleCreated(product: Product) {
+    if (!matchesFilter(product, activeBelow)) return;
+
     setState((prev) =>
       prev.status === "ready"
         ? {
@@ -108,13 +117,14 @@ export default function ProductsPage() {
   }
 
   function handleAdjusted(product: Product) {
+    setMovementsVersion((version) => version + 1);
     setState((prev) =>
       prev.status === "ready"
         ? {
             ...prev,
-            products: prev.products.map((item) =>
-              item.id === product.id ? product : item,
-            ),
+            products: prev.products
+              .map((item) => (item.id === product.id ? product : item))
+              .filter((item) => matchesFilter(item, activeBelow)),
           }
         : prev,
     );
@@ -145,6 +155,7 @@ export default function ProductsPage() {
           ? { ...prev, products }
           : prev,
       );
+      setActiveBelow(value);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         handleUnauthorized();
@@ -175,6 +186,7 @@ export default function ProductsPage() {
           ? { ...prev, products }
           : prev,
       );
+      setActiveBelow(null);
 
       setThreshold("");
     } catch (error) {
@@ -298,6 +310,7 @@ export default function ProductsPage() {
           token={state.token}
           products={state.products}
           onUnauthorized={handleUnauthorized}
+          refreshKey={movementsVersion}
         />
 
         {/* Product List */}

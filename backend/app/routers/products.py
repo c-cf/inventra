@@ -3,7 +3,13 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate, StockAdjustment
+from app.schemas.product import (
+    ProductCreate,
+    ProductOut,
+    ProductUpdate,
+    StockAdjustment,
+    StockMovementOut,
+)
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -85,12 +91,12 @@ def adjust_stock(
     return ProductOut.model_validate(product)
 
 
-@router.get("/{product_id}/movements")
+@router.get("/{product_id}/movements", response_model=list[StockMovementOut])
 def get_stock_movements(
     product_id: int,
     conn: DbConn,
     _: CurrentUser,
-):
+) -> list[StockMovementOut]:
     product = products.get_by_id(conn, product_id)
 
     if product is None:
@@ -101,4 +107,4 @@ def get_stock_movements(
 
     movements = products.get_stock_movements(conn, product_id)
 
-    return [dict(row) for row in movements]
+    return [StockMovementOut.model_validate(movement) for movement in movements]

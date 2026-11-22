@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, createProduct, fetchProducts, login, adjustStock, fetchStockMovements } from "@/lib/api";
+import {
+  ApiError,
+  adjustStock,
+  createProduct,
+  fetchMe,
+  fetchProducts,
+  fetchStockMovements,
+  login,
+} from "@/lib/api";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -220,5 +228,42 @@ describe("fetchStockMovements", () => {
     const result = await fetchStockMovements("tok", 3);
 
     expect(result).toEqual([]);
+  });
+});
+
+describe("fetchMe", () => {
+  it("sends the bearer token and returns the current user", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 1, username: "alice", role: "admin" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const user = await fetchMe("tok");
+
+    expect(user).toEqual({ id: 1, username: "alice", role: "admin" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://localhost:8000/auth/me");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+  });
+});
+
+describe("error responses", () => {
+  it("falls back to a generic message when the error body is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("<html>Bad Gateway</html>", { status: 502 })),
+    );
+
+    await expect(fetchMe("tok")).rejects.toMatchObject({
+      status: 502,
+      message: "Request failed with status 502",
+    });
+  });
+
+  it("falls back to a generic message when the JSON body has no detail", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "boom" }, 500)));
+
+    await expect(fetchMe("tok")).rejects.toMatchObject({
+      status: 500,
+      message: "Request failed with status 500",
+    });
   });
 });

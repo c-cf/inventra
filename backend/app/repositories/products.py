@@ -1,6 +1,6 @@
 import sqlite3
 
-from app.models import Product
+from app.models import Product, StockMovement
 
 
 class DuplicateSkuError(Exception):
@@ -9,6 +9,11 @@ class DuplicateSkuError(Exception):
 
 class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
+
+
+def _is_duplicate_sku(exc: sqlite3.IntegrityError) -> bool:
+    # Match the UNIQUE violation only: a NOT NULL failure also mentions products.sku.
+    return "UNIQUE constraint failed: products.sku" in str(exc)
 
 
 def _to_product(row: sqlite3.Row) -> Product:
@@ -31,7 +36,7 @@ def create(
             (sku, name, price, quantity),
         )
     except sqlite3.IntegrityError as exc:
-        if "products.sku" in str(exc):
+        if _is_duplicate_sku(exc):
             raise DuplicateSkuError(sku) from exc
         raise
     conn.commit()
@@ -59,7 +64,7 @@ def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | Non
                 (*fields.values(), product_id),
             )
         except sqlite3.IntegrityError as exc:
-            if "UNIQUE constraint failed: products.sku" in str(exc):
+            if _is_duplicate_sku(exc):
                 raise DuplicateSkuError(fields["sku"]) from exc
             raise
         conn.commit()
@@ -99,11 +104,18 @@ def adjust_stock(
     return get_by_id(conn, product_id)
 
 
-def get_stock_movements(
-    conn: sqlite3.Connection,
-    product_id: int,
-):
-    return conn.execute(
+def _to_movement(row: sqlite3.Row) -> StockMovement:
+    return StockMovement(
+        id=row["id"],
+        product_id=row["product_id"],
+        change=row["change"],
+        reason=row["reason"],
+        created_at=row["created_at"],
+    )
+
+
+def get_stock_movements(conn: sqlite3.Connection, product_id: int) -> list[StockMovement]:
+    rows = conn.execute(
         """
         SELECT id, product_id, change, reason, created_at
         FROM stock_movements
@@ -112,6 +124,7 @@ def get_stock_movements(
         """,
         (product_id,),
     ).fetchall()
+    return [_to_movement(row) for row in rows]
 
 
 def get_low_stock_products(

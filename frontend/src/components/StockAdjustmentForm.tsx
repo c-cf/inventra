@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -24,13 +23,19 @@ export function StockAdjustmentForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // A selection only counts while the product is still listed (a filter or an
+  // adjustment can remove it); otherwise the select shows the placeholder.
+  const selectedId = products.some((product) => String(product.id) === productId)
+    ? productId
+    : "";
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const amount = Number(change);
 
     if (
-      !productId ||
+      !selectedId ||
       change.trim() === "" ||
       !Number.isInteger(amount) ||
       amount === 0
@@ -50,7 +55,7 @@ export function StockAdjustmentForm({
     try {
       const updated = await adjustStock(
         token,
-        Number(productId),
+        Number(selectedId),
         amount,
         reason.trim(),
       );
@@ -86,7 +91,7 @@ export function StockAdjustmentForm({
 
           <select
             id="adjust-product"
-            value={productId}
+            value={selectedId}
             onChange={(event) => setProductId(event.target.value)}
             className="w-full rounded-md border p-2 dark:bg-zinc-900"
           >
