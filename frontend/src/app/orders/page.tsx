@@ -13,21 +13,28 @@ export default function OrdersPage() {
   const { state, setData, signOut } = useAuthedLoad((token) => fetchOrders(token));
   const [statusFilter, setStatusFilter] = useState("");
   const [filterError, setFilterError] = useState("");
+  const [filtering, setFiltering] = useState(false);
 
   async function handleFilter(value: string) {
     if (state.status !== "ready") return;
+    const previous = statusFilter;
     setStatusFilter(value);
     setFilterError("");
+    // One request at a time (the select is disabled meanwhile), so responses cannot race.
+    setFiltering(true);
     try {
       const status = ORDER_STATUSES.find((candidate) => candidate === value);
       const orders = await fetchOrders(state.token, status);
       setData(() => orders);
     } catch (error) {
+      setStatusFilter(previous);
       if (error instanceof ApiError && error.status === 401) {
         signOut();
         return;
       }
       setFilterError(error instanceof Error ? error.message : "Failed to load orders.");
+    } finally {
+      setFiltering(false);
     }
   }
 
@@ -60,6 +67,7 @@ export default function OrdersPage() {
             <select
               id="order-status-filter"
               value={statusFilter}
+              disabled={filtering}
               onChange={(event) => void handleFilter(event.target.value)}
               className="w-44 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
