@@ -70,10 +70,6 @@ class LoginThrottle:
             self._count(key)
             return 0
 
-    def record_failure(self, key: tuple[str, str]) -> None:
-        with self._lock:
-            self._count(key)
-
     def _count(self, key: tuple[str, str]) -> None:
         """Count one attempt for key, locking it at the limit. Caller holds the lock."""
         now = _now()

@@ -16,21 +16,21 @@ def clock(monkeypatch):
 def test_failures_older_than_the_window_do_not_count(clock):
     throttle = LoginThrottle(max_attempts=3, lockout_seconds=60)
     key = ("10.0.0.1", "alice")
-    throttle.record_failure(key)
-    throttle.record_failure(key)
+    throttle.begin(key)
+    throttle.begin(key)
 
     clock[0] += 61
-    throttle.record_failure(key)
+    throttle.begin(key)
 
     assert throttle.retry_after(key) == 0
 
 
 def test_entries_are_forgotten_once_their_window_and_lock_have_passed(clock):
     throttle = LoginThrottle(max_attempts=3, lockout_seconds=60)
-    throttle.record_failure(("10.0.0.1", "ghost-1"))
+    throttle.begin(("10.0.0.1", "ghost-1"))
 
     clock[0] += 61
-    throttle.record_failure(("10.0.0.1", "ghost-2"))
+    throttle.begin(("10.0.0.1", "ghost-2"))
 
     assert len(throttle) == 1
 
@@ -39,7 +39,7 @@ def test_the_number_of_tracked_keys_is_capped(clock):
     throttle = LoginThrottle(max_attempts=3, lockout_seconds=60, max_entries=5)
 
     for n in range(50):
-        throttle.record_failure(("10.0.0.1", f"ghost-{n}"))
+        throttle.begin(("10.0.0.1", f"ghost-{n}"))
 
     assert len(throttle) <= 5
 
