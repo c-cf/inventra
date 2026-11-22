@@ -1,5 +1,7 @@
 """Browser sessions: an httpOnly cookie instead of a token kept in JavaScript."""
 
+import pytest
+
 from app.security import decode_access_token
 
 FRONTEND = "http://localhost:3000"
@@ -107,3 +109,22 @@ def test_logout_from_another_site_is_refused(client, user):
 
     assert response.status_code == 403
     assert client.get("/auth/me").status_code == 200
+
+
+def test_a_bearer_header_wins_over_the_session_cookie(client, user, staff_headers):
+    # The Origin exemption for bearer requests relies on the cookie being ignored then.
+    login(client)
+
+    response = client.get("/auth/me", headers=staff_headers)
+
+    assert response.json()["username"] == "bob"
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["http://evil.example", "null", "http://localhost:3000.evil.example", "http://localhost:5173"],
+)
+def test_cookie_writes_need_an_exactly_matching_origin(client, user, origin):
+    login(client)
+
+    assert client.post("/products", json=PRODUCT, headers={"Origin": origin}).status_code == 403
