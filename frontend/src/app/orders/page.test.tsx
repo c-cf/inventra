@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "@/app/orders/page";
 import { ApiError, fetchMe, fetchOrders, type Order } from "@/lib/api";
-
-const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
-
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+import { hardNavigate } from "@/lib/hardNavigate";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -31,8 +28,6 @@ function order(id: number, status: Order["status"]): Order {
 
 beforeEach(() => {
   window.localStorage.clear();
-  router.replace.mockReset();
-  router.push.mockReset();
   vi.mocked(fetchMe).mockReset().mockResolvedValue(alice);
   vi.mocked(fetchOrders).mockReset();
 });
@@ -43,7 +38,7 @@ describe("OrdersPage", () => {
 
     render(<OrdersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("lists the orders and links to the new order page", async () => {
@@ -82,7 +77,7 @@ describe("OrdersPage", () => {
 
     render(<OrdersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows an error when the backend cannot be reached", async () => {
@@ -114,7 +109,7 @@ describe("OrdersPage", () => {
 
     await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("disables the status filter while a request is in flight so responses cannot race", async () => {

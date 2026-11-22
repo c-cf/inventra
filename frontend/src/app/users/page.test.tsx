@@ -4,10 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import UsersPage from "@/app/users/page";
 import { ApiError, createUser, fetchMe, fetchUsers, updateUserRole, type UserSummary } from "@/lib/api";
-
-const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
-
-vi.mock("next/navigation", () => ({ useRouter: () => router }));
+import { hardNavigate } from "@/lib/hardNavigate";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -22,7 +19,6 @@ const bob: UserSummary = { id: 2, username: "bob", role: "staff", created_at: "2
 
 beforeEach(() => {
   window.localStorage.clear();
-  router.replace.mockReset();
   vi.mocked(fetchMe).mockReset().mockResolvedValue({ id: 1, username: "alice", role: "admin" });
   vi.mocked(fetchUsers).mockReset().mockResolvedValue([alice, bob]);
   vi.mocked(createUser).mockReset();
@@ -35,7 +31,7 @@ describe("UsersPage", () => {
 
     render(<UsersPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("lets an admin see the users and add one", async () => {
