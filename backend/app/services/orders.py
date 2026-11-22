@@ -14,6 +14,14 @@ class InsufficientStockError(Exception):
         self.sku = sku
 
 
+class ProductNotFoundError(Exception):
+    """Raised when an order references a product that does not exist."""
+
+    def __init__(self, product_id: int) -> None:
+        super().__init__(product_id)
+        self.product_id = product_id
+
+
 def place_order(
     conn: sqlite3.Connection,
     *,
@@ -26,7 +34,8 @@ def place_order(
         order_id = orders.insert(conn, customer_name=customer_name, created_by=created_by)
         for product_id, quantity in items:
             product = products.get_by_id(conn, product_id)
-            assert product is not None
+            if product is None:
+                raise ProductNotFoundError(product_id)
             if not products.remove_stock(conn, product_id, quantity):
                 raise InsufficientStockError(product.sku)
             orders.insert_item(conn, order_id=order_id, product=product, quantity=quantity)

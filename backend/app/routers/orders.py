@@ -16,6 +16,11 @@ def create_order(payload: OrderCreate, conn: DbConn, current_user: CurrentUser) 
             items=[(item.product_id, item.quantity) for item in payload.items],
             created_by=current_user.id,
         )
+    except order_service.ProductNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Product {exc.product_id} not found",
+        ) from None
     except order_service.InsufficientStockError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
