@@ -34,3 +34,8 @@ def get_by_id(conn: sqlite3.Connection, user_id: int) -> User | None:
 def get_by_username(conn: sqlite3.Connection, username: str) -> User | None:
     row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     return _to_user(row) if row else None
+
+
+def list_all(conn: sqlite3.Connection) -> list[User]:
+    rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
+    return [_to_user(row) for row in rows]
