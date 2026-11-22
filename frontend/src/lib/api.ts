@@ -101,6 +101,10 @@ export function createProduct(token: string, input: ProductInput): Promise<Produ
   return request<Product>("/products", { method: "POST", body: input, token });
 }
 
+export function fetchProduct(token: string, productId: number): Promise<Product> {
+  return request<Product>(`/products/${productId}`, { token });
+}
+
 export type ProductUpdate = Partial<Pick<Product, "sku" | "name" | "price">>;
 
 export function updateProduct(
