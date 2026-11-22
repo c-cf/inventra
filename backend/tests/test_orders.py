@@ -137,3 +137,12 @@ def test_create_order_validates_payload(client, auth_headers, db, make_product, 
     assert response.status_code == 422
     assert stock_of(client, auth_headers, keyboard["id"]) == 10
     assert count_rows(db, "orders") == 0
+
+
+def test_placing_an_order_records_stock_movements(client, auth_headers, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+
+    order = place(client, auth_headers, (keyboard["id"], 3)).json()
+
+    movements = client.get(f"/products/{keyboard['id']}/movements", headers=auth_headers).json()
+    assert [(m["change"], m["reason"]) for m in movements] == [(-3, f"order #{order['id']}")]
