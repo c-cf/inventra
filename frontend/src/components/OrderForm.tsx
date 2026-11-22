@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import { ApiError, createOrder, type Order, type Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
@@ -57,6 +57,8 @@ export function OrderForm({
   const [lines, setLines] = useState<Line[]>([{ key: 1, productId: "", quantity: "1" }]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Set synchronously so even a double click in one frame posts a single order.
+  const submitting = useRef(false);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
 
@@ -80,11 +82,15 @@ export function OrderForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (submitting.current) return;
+
     const problem = validate(customer, lines, products);
     setError(problem);
     if (problem) return;
 
+    submitting.current = true;
     setPending(true);
+    let placed = false;
     try {
       const order = await createOrder(token, {
         customer_name: customer.trim(),
@@ -93,6 +99,7 @@ export function OrderForm({
           quantity: Number(line.quantity),
         })),
       });
+      placed = true;
       onCreated(order);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -105,7 +112,11 @@ export function OrderForm({
           : "Could not reach the server. Is the backend running?",
       );
     } finally {
-      setPending(false);
+      // After a success the page navigates away; keep the form locked until it does.
+      if (!placed) {
+        submitting.current = false;
+        setPending(false);
+      }
     }
   }
 
