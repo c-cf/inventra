@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OrderStatusActions } from "@/components/OrderStatusActions";
-import { updateOrderStatus, type Order, type OrderStatus } from "@/lib/api";
+import { ApiError, updateOrderStatus, type Order, type OrderStatus } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -82,5 +82,53 @@ describe("OrderStatusActions", () => {
 
     expect(updateOrderStatus).toHaveBeenCalledWith("tok", 7, target);
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith(order(target)));
+  });
+
+  it("asks before cancelling and does nothing when the user declines", async () => {
+    vi.mocked(window.confirm).mockReturnValue(false);
+    const user = renderActions("pending");
+
+    await user.click(screen.getByRole("button", { name: "Cancel order" }));
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      "Cancel order #7? Its items go back into stock and this cannot be undone.",
+    );
+    expect(updateOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it("shows the backend's message when the change is rejected", async () => {
+    vi.mocked(updateOrderStatus).mockRejectedValue(
+      new ApiError(409, "Cannot change an order from cancelled to paid"),
+    );
+    const user = renderActions("pending");
+
+    await user.click(screen.getByRole("button", { name: "Mark as paid" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Cannot change an order from cancelled to paid",
+    );
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it("hands a rejected token to onUnauthorized", async () => {
+    vi.mocked(updateOrderStatus).mockRejectedValue(new ApiError(401, "Not authenticated"));
+    const user = renderActions("pending");
+
+    await user.click(screen.getByRole("button", { name: "Mark as paid" }));
+
+    await waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("disables every action while a change is in flight", async () => {
+    let resolve: (value: Order) => void = () => {};
+    vi.mocked(updateOrderStatus).mockReturnValue(new Promise((done) => (resolve = done)));
+    const user = renderActions("pending");
+
+    await user.click(screen.getByRole("button", { name: "Mark as paid" }));
+
+    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
+    resolve(order("paid"));
+    await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });
 });
