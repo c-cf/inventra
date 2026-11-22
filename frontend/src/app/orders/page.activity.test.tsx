@@ -4,7 +4,7 @@ import { Activity, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "@/app/orders/page";
-import { fetchMe, fetchOrders, type Order, type OrderStatus } from "@/lib/api";
+import { ApiError, fetchMe, fetchOrders, type Order, type OrderStatus } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -114,6 +114,21 @@ describe("OrdersPage when the user comes back to it (#37)", () => {
     await act(async () => reload.resolve(allOrders)); // the unfiltered reload lands last
 
     await waitFor(() => expect(fetchOrders).toHaveBeenCalledTimes(4));
+    expect(fetchOrders).toHaveBeenLastCalledWith("paid");
+    await waitFor(() => expect(listedOrders()).toEqual(["#2"]));
+  });
+
+  it("reloads with the status still applied after a filter failed", async () => {
+    const { rerender, user } = await renderPage();
+    await user.selectOptions(screen.getByLabelText("Status"), "paid");
+    await waitFor(() => expect(listedOrders()).toEqual(["#2"]));
+    vi.mocked(fetchOrders).mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
+    await user.selectOptions(screen.getByLabelText("Status"), "shipped");
+    await screen.findByRole("alert");
+    expect(screen.getByLabelText("Status")).toHaveValue("paid");
+
+    await leaveAndComeBack(rerender);
+
     expect(fetchOrders).toHaveBeenLastCalledWith("paid");
     await waitFor(() => expect(listedOrders()).toEqual(["#2"]));
   });
