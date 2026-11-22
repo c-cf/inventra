@@ -138,3 +138,11 @@ def remove_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bo
         (quantity, product_id, quantity),
     )
     return cursor.rowcount == 1
+
+
+def record_movement(conn: sqlite3.Connection, product_id: int, change: int, reason: str) -> None:
+    """Append a row to the stock audit trail. Does not commit."""
+    conn.execute(
+        "INSERT INTO stock_movements (product_id, change, reason) VALUES (?, ?, ?)",
+        (product_id, change, reason),
+    )

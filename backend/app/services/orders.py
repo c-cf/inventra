@@ -39,6 +39,7 @@ def place_order(
             if not products.remove_stock(conn, product_id, quantity):
                 raise InsufficientStockError(product.sku)
             orders.insert_item(conn, order_id=order_id, product=product, quantity=quantity)
+            products.record_movement(conn, product_id, -quantity, f"order #{order_id}")
     except Exception:
         conn.rollback()
         raise
