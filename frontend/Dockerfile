@@ -31,6 +31,6 @@ USER node
 EXPOSE 3000
 
 HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
-    CMD wget -qO /dev/null http://localhost:3000/login || exit 1
+    CMD wget -qO /dev/null http://127.0.0.1:3000/login || exit 1
 
 CMD ["node_modules/.bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]
