@@ -57,3 +57,17 @@ def test_me_rejects_token_for_unknown_user(client):
     response = client.get("/auth/me", headers=headers)
 
     assert response.status_code == 401
+
+
+def test_login_rejects_an_overlong_username(client):
+    response = client.post("/auth/login", json={"username": "x" * 151, "password": "whatever"})
+
+    assert response.status_code == 422
+
+
+def test_a_password_longer_than_bcrypt_accepts_is_rejected_up_front(client, user):
+    # bcrypt reads at most 72 bytes and bcrypt>=5 raises on longer input. Rejecting it
+    # in validation also keeps such requests from being a cheap way to fill the throttle.
+    response = client.post("/auth/login", json={"username": "alice", "password": "é" * 37})
+
+    assert response.status_code == 422

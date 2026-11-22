@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 from app.db import connect, init_db
@@ -46,7 +44,7 @@ def test_get_by_id(conn):
 def test_username_is_unique(conn):
     users.create(conn, username="alice", password_hash="hash")
 
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(users.DuplicateUsernameError):
         users.create(conn, username="alice", password_hash="other")
 
 

@@ -14,6 +14,8 @@ from app.security import hash_password
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"  # development only; change before any real deployment
+STAFF_USERNAME = "staff"
+STAFF_PASSWORD = "staff123"  # development only
 
 SAMPLE_PRODUCTS: list[dict] = [
     {"sku": "KB-001", "name": "Mechanical Keyboard", "price": 89.0, "quantity": 25},
@@ -25,13 +27,12 @@ SAMPLE_PRODUCTS: list[dict] = [
 
 def seed(conn: sqlite3.Connection) -> None:
     init_db(conn)
-    if users.get_by_username(conn, ADMIN_USERNAME) is None:
-        users.create(
-            conn,
-            username=ADMIN_USERNAME,
-            password_hash=hash_password(ADMIN_PASSWORD),
-            role="admin",
-        )
+    for username, password, role in (
+        (ADMIN_USERNAME, ADMIN_PASSWORD, "admin"),
+        (STAFF_USERNAME, STAFF_PASSWORD, "staff"),
+    ):
+        if users.get_by_username(conn, username) is None:
+            users.create(conn, username=username, password_hash=hash_password(password), role=role)
     for product in SAMPLE_PRODUCTS:
         try:
             products.create(conn, **product)
@@ -45,7 +46,10 @@ def main() -> None:
         seed(conn)
     finally:
         conn.close()
-    print(f"Seeded admin user '{ADMIN_USERNAME}' and {len(SAMPLE_PRODUCTS)} products.")
+    print(
+        f"Seeded users '{ADMIN_USERNAME}' (admin) and '{STAFF_USERNAME}' (staff) "
+        f"and {len(SAMPLE_PRODUCTS)} products."
+    )
 
 
 if __name__ == "__main__":

@@ -26,3 +26,17 @@ def test_seeded_admin_can_log_in(client, db):
     )
 
     assert response.status_code == 200
+
+
+def test_seed_creates_a_staff_account_that_can_log_in(client, db):
+    from app.seed import STAFF_PASSWORD, STAFF_USERNAME
+
+    seed(db)
+    seed(db)
+
+    staff = users.get_by_username(db, STAFF_USERNAME)
+    assert staff is not None and staff.role == "staff"
+    response = client.post(
+        "/auth/login", json={"username": STAFF_USERNAME, "password": STAFF_PASSWORD}
+    )
+    assert response.status_code == 200

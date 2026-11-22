@@ -16,8 +16,15 @@ def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
+# bcrypt only reads 72 bytes; bcrypt>=5 raises instead of silently truncating.
+BCRYPT_MAX_BYTES = 72
+
+
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+    encoded = plain.encode()
+    if len(encoded) > BCRYPT_MAX_BYTES:
+        return False  # no stored password can be this long, so it cannot match
+    return bcrypt.checkpw(encoded, hashed.encode())
 
 
 def create_access_token(subject: str, *, expires_minutes: int | None = None) -> str:
