@@ -30,7 +30,8 @@ export default function OrdersPage() {
     const previous = statusFilter;
     setStatusFilter(value);
     setFilterError("");
-    // One request at a time (the select is disabled meanwhile), so responses cannot race.
+    // One filter request at a time (the select is disabled meanwhile). A come-back reload
+    // can still be out; it reads appliedStatus and asks again if this one changes it.
     setFiltering(true);
     try {
       const status = ORDER_STATUSES.find((candidate) => candidate === value);
