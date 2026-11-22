@@ -83,7 +83,7 @@ describe("ProductsPage", () => {
     expect(fetchProducts).toHaveBeenCalledWith();
   });
 
-  it("clears a rejected token and redirects to /login", async () => {
+  it("sends a rejected session to /login", async () => {
 
     vi.mocked(fetchMe).mockRejectedValue(
       new ApiError(401, "Not authenticated"),

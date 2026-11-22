@@ -114,9 +114,7 @@ export function fetchProduct(productId: number): Promise<Product> {
 
 export type ProductUpdate = Partial<Pick<Product, "sku" | "name" | "price">>;
 
-export function updateProduct(productId: number,
-  changes: ProductUpdate,
-): Promise<Product> {
+export function updateProduct(productId: number, changes: ProductUpdate): Promise<Product> {
   return request<Product>(`/products/${productId}`, { method: "PATCH", body: changes });
 }
 
@@ -124,23 +122,17 @@ export function deleteProduct(productId: number): Promise<void> {
   return request<void>(`/products/${productId}`, { method: "DELETE" });
 }
 
-export function adjustStock(productId: number,
-  change: number,
-  reason: string,
-): Promise<Product> {
+export function adjustStock(productId: number, change: number, reason: string): Promise<Product> {
   return request<Product>(`/products/${productId}/adjust`, {
     method: "POST",
     body: { change, reason },
   });
 }
 
-export function fetchStockMovements(productId: number,
-): Promise<StockMovement[]> {
-  return request<StockMovement[]>(
-    `/products/${productId}/movements`,
-    {},
-  );
+export function fetchStockMovements(productId: number): Promise<StockMovement[]> {
+  return request<StockMovement[]>(`/products/${productId}/movements`);
 }
+
 export const ORDER_STATUSES = ["pending", "paid", "shipped", "cancelled"] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];

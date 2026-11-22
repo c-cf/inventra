@@ -77,7 +77,7 @@ describe("OrdersPage", () => {
     expect(fetchOrders).toHaveBeenLastCalledWith(undefined);
   });
 
-  it("clears a rejected token and redirects to /login", async () => {
+  it("sends a rejected session to /login", async () => {
     vi.mocked(fetchOrders).mockRejectedValue(new ApiError(401, "Not authenticated"));
 
     render(<OrdersPage />);

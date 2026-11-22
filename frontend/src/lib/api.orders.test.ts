@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe("fetchOrders", () => {
-  it("lists orders with the bearer token", async () => {
+  it("lists orders with the session cookie", async () => {
     const fetchMock = stubFetch(jsonResponse([order]));
 
     expect(await fetchOrders()).toEqual([order]);

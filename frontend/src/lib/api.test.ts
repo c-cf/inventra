@@ -56,7 +56,7 @@ describe("login", () => {
 });
 
 describe("fetchProducts", () => {
-  it("sends the bearer token and returns the product list", async () => {
+  it("returns the product list", async () => {
     const products = [
       { id: 1, sku: "KB-001", name: "Keyboard", price: 89, quantity: 25, created_at: "2026-01-01" },
     ];
@@ -94,7 +94,7 @@ describe("fetchProducts", () => {
 });
 
 describe("createProduct", () => {
-  it("posts the product with the bearer token and returns the created product", async () => {
+  it("posts the product and returns the created product", async () => {
     const created = { id: 7, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-09" };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(created, 201));
     vi.stubGlobal("fetch", fetchMock);
@@ -230,7 +230,7 @@ describe("fetchStockMovements", () => {
 });
 
 describe("fetchMe", () => {
-  it("sends the bearer token and returns the current user", async () => {
+  it("returns the current user", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 1, username: "alice", role: "admin" }));
     vi.stubGlobal("fetch", fetchMock);
 
