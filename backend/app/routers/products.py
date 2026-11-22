@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
-from app.deps import CurrentUser, DbConn
+from app.deps import AdminUser, CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
 from app.schemas.limits import MAX_ID
@@ -118,7 +118,7 @@ def get_stock_movements(
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_product(product_id: ProductId, conn: DbConn, _: CurrentUser) -> Response:
+def delete_product(product_id: ProductId, conn: DbConn, _: AdminUser) -> Response:
     try:
         deleted = products.delete(conn, product_id)
     except products.ProductInUseError:

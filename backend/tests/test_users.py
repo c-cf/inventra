@@ -1,0 +1,179 @@
+"""User management: admins manage accounts, staff cannot."""
+
+import pytest
+
+from app.security import create_access_token
+
+
+def test_list_users_requires_auth(client):
+    assert client.get("/users").status_code == 401
+
+
+def test_staff_cannot_list_users(client, staff_headers):
+    response = client.get("/users", headers=staff_headers)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin role required"
+
+
+def test_admin_lists_users_without_password_hashes(client, auth_headers, user, staff):
+    response = client.get("/users", headers=auth_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [(u["username"], u["role"]) for u in body] == [("alice", "admin"), ("bob", "staff")]
+    assert all(set(u) == {"id", "username", "role", "created_at"} for u in body)
+
+
+NEW_USER = {"username": "carol", "password": "carolpass1", "role": "staff"}
+
+
+def test_staff_cannot_create_users(client, staff_headers):
+    assert client.post("/users", json=NEW_USER, headers=staff_headers).status_code == 403
+
+
+def test_admin_creates_a_user_who_can_then_log_in(client, auth_headers):
+    response = client.post("/users", json=NEW_USER, headers=auth_headers)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert (body["username"], body["role"]) == ("carol", "staff")
+    assert "password" not in body and "password_hash" not in body
+    login = client.post("/auth/login", json={"username": "carol", "password": "carolpass1"})
+    assert login.status_code == 200
+
+
+def test_creating_a_duplicate_username_returns_409(client, auth_headers, staff):
+    response = client.post("/users", json={**NEW_USER, "username": "bob"}, headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Username already exists"
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"username": "ab"},  # too short
+        {"username": "x" * 151},
+        {"username": "has space"},
+        {"password": "short7!"},  # under 8 characters
+        {"password": "é" * 37},  # over bcrypt's 72 bytes
+        {"role": "owner"},
+        {"role": None},
+    ],
+)
+def test_create_user_validates_payload(client, auth_headers, overrides):
+    response = client.post("/users", json={**NEW_USER, **overrides}, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_admin_promotes_a_staff_member(client, auth_headers, staff):
+    response = client.patch(f"/users/{staff.id}", json={"role": "admin"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
+    me = client.get(
+        "/auth/me", headers={"Authorization": f"Bearer {create_access_token(str(staff.id))}"}
+    )
+    assert me.json()["role"] == "admin"
+
+
+def test_admins_cannot_change_their_own_role(client, auth_headers, user):
+    response = client.patch(f"/users/{user.id}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "You cannot change your own role"
+
+
+def test_staff_cannot_change_roles(client, staff_headers, user):
+    response = client.patch(f"/users/{user.id}", json={"role": "staff"}, headers=staff_headers)
+
+    assert response.status_code == 403
+
+
+def test_changing_the_role_of_a_missing_user_returns_404(client, auth_headers):
+    response = client.patch("/users/999", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+
+
+@pytest.mark.parametrize("payload", [{"role": "owner"}, {}, {"role": None}])
+def test_role_change_validates_payload(client, auth_headers, staff, payload):
+    assert client.patch(f"/users/{staff.id}", json=payload, headers=auth_headers).status_code == 422
+
+
+def test_only_admins_can_delete_products(client, auth_headers, staff_headers):
+    created = client.post(
+        "/products",
+        json={"sku": "DEL-1", "name": "To delete", "price": 1, "quantity": 1},
+        headers=staff_headers,
+    )
+    assert created.status_code == 201
+    product_id = created.json()["id"]
+
+    refused = client.delete(f"/products/{product_id}", headers=staff_headers)
+    allowed = client.delete(f"/products/{product_id}", headers=auth_headers)
+
+    assert refused.status_code == 403
+    assert refused.json()["detail"] == "Admin role required"
+    assert allowed.status_code == 204
+
+
+def test_user_paths_reject_out_of_range_ids(client, auth_headers):
+    response = client.patch(f"/users/{10**20}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+def test_admin_demotes_another_admin(client, auth_headers, db):
+    from app.repositories import users as users_repo
+    from app.security import hash_password
+
+    dave = users_repo.create(
+        db, username="dave", password_hash=hash_password("davepass1"), role="admin"
+    )
+
+    response = client.patch(f"/users/{dave.id}", json={"role": "staff"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "staff"
+
+
+def test_an_admin_created_through_the_api_can_manage_users(client, auth_headers):
+    created = client.post(
+        "/users",
+        json={"username": "erin", "password": "erinpass1", "role": "admin"},
+        headers=auth_headers,
+    )
+    token = client.post("/auth/login", json={"username": "erin", "password": "erinpass1"})
+
+    assert created.json()["role"] == "admin"
+    erin_headers = {"Authorization": f"Bearer {token.json()['access_token']}"}
+    assert client.get("/users", headers=erin_headers).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("username", "password"),
+    [("abc", "eightchr"), ("x" * 150, "a" * 72), ("abc", "é" * 36)],
+)
+def test_create_user_accepts_the_boundary_values(client, auth_headers, username, password):
+    response = client.post(
+        "/users",
+        json={"username": username, "password": password, "role": "staff"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize("password", ["sevench", "a" * 73])
+def test_create_user_rejects_just_past_the_password_limits(client, auth_headers, password):
+    response = client.post(
+        "/users",
+        json={"username": "frank", "password": password, "role": "staff"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
