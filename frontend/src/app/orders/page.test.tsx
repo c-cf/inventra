@@ -124,4 +124,34 @@ describe("OrdersPage", () => {
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
     expect(getToken()).toBeNull();
   });
+
+  it("disables the status filter while a request is in flight so responses cannot race", async () => {
+    setToken("tok");
+    let resolve: (orders: Order[]) => void = () => {};
+    vi.mocked(fetchOrders)
+      .mockResolvedValueOnce([order(2, "paid"), order(1, "pending")])
+      .mockReturnValueOnce(new Promise((done) => (resolve = done)));
+    render(<OrdersPage />);
+    await screen.findByRole("link", { name: "#1" });
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
+
+    expect(screen.getByLabelText("Status")).toBeDisabled();
+    resolve([order(2, "paid")]);
+    await waitFor(() => expect(screen.getByLabelText("Status")).toBeEnabled());
+  });
+
+  it("puts the previous status back when filtering fails", async () => {
+    setToken("tok");
+    vi.mocked(fetchOrders)
+      .mockResolvedValueOnce([order(1, "pending")])
+      .mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
+    render(<OrdersPage />);
+    await screen.findByRole("link", { name: "#1" });
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
+
+    await screen.findByRole("alert");
+    expect(screen.getByLabelText("Status")).toHaveValue("");
+  });
 });
