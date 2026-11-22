@@ -15,6 +15,13 @@ class ProductUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     price: float | None = Field(default=None, ge=0)
 
+    @field_validator("name")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("must not be null")
+        return value
+
 
 class ProductOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
