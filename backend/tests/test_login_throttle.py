@@ -53,3 +53,25 @@ def test_the_lockout_expires(throttled, client, user, monkeypatch):
     now[0] += 61
 
     assert login(client, "secret123").status_code == 200
+
+
+def test_a_lockout_only_applies_to_the_client_that_caused_it(throttled, client, user):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    with TestClient(app, client=("203.0.113.7", 50000)) as attacker:
+        for _ in range(3):
+            login(attacker, "wrong")
+        assert login(attacker, "secret123").status_code == 429
+
+        # Not used as a context manager, so no second lifespan replaces the throttle.
+        owner = TestClient(app, client=("198.51.100.20", 50000))
+        assert login(owner, "secret123").status_code == 200
+
+
+def test_usernames_share_a_bucket_regardless_of_case(throttled, client, user):
+    for name in ("Alice", "ALICE", "alice"):
+        login(client, "wrong", username=name)
+
+    assert login(client, "secret123").status_code == 429
