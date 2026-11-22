@@ -174,3 +174,11 @@ def test_update_product_rejects_null_price(client, auth_headers):
     )
 
     assert response.status_code == 422
+
+
+def test_update_product_rejects_null_sku(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(f"/products/{created['id']}", json={"sku": None}, headers=auth_headers)
+
+    assert response.status_code == 422
