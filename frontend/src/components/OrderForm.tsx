@@ -9,6 +9,8 @@ type OrderFormProps = {
   products: Product[];
   onCreated: (order: Order) => void;
   onUnauthorized: () => void;
+  /** Called when the API refuses the order because stock changed meanwhile (409). */
+  onStockConflict?: () => void;
 };
 
 type Line = { key: number; productId: string; quantity: string };
@@ -57,6 +59,7 @@ export function OrderForm({
   products,
   onCreated,
   onUnauthorized,
+  onStockConflict,
 }: Readonly<OrderFormProps>) {
   const [customer, setCustomer] = useState("");
   const [lines, setLines] = useState<Line[]>(EMPTY_LINES);
@@ -129,6 +132,7 @@ export function OrderForm({
         onUnauthorized();
         return;
       }
+      if (err instanceof ApiError && err.status === 409) onStockConflict?.();
       setError(
         err instanceof ApiError
           ? err.message
