@@ -19,6 +19,7 @@ const inputClass =
 // Mirrors ProductUpdate in the API (backend/app/schemas/product.py).
 const MAX_SKU = 64;
 const MAX_NAME = 200;
+const MAX_PRICE = 1_000_000_000;
 
 function validate(sku: string, name: string, price: string): string | null {
   if (sku.trim() === "") return "SKU is required.";
@@ -27,6 +28,7 @@ function validate(sku: string, name: string, price: string): string | null {
   if (name.trim().length > MAX_NAME) return `Name must be ${MAX_NAME} characters or fewer.`;
   if (price.trim() === "") return "Price is required.";
   if (Number(price) < 0) return "Price must be 0 or more.";
+  if (Number(price) > MAX_PRICE) return "Price must be 1,000,000,000 or less.";
   return null;
 }
 
