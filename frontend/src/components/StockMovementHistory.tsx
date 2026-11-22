@@ -63,6 +63,8 @@ export function StockMovementHistory({
 
     const id = Number(selectedId);
     const request = ++latestRequest.current;
+    // Set before the request so a refresh that lands mid-flight re-fetches this product.
+    viewedId.current = id;
 
     setError("");
     setLoading(true);
@@ -73,7 +75,6 @@ export function StockMovementHistory({
       if (request !== latestRequest.current) return;
 
       setMovements(result);
-      viewedId.current = id;
       setSearched(true);
     } catch (err) {
       if (request === latestRequest.current) handleLoadError(err);
