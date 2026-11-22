@@ -46,8 +46,14 @@ def login(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout() -> Response:
+def logout(request: Request) -> Response:
     """Clear the session cookie; page scripts cannot, because it is httpOnly."""
+    origin = request.headers.get("origin")
+    if origin is not None and origin not in get_settings().cors_origins:
+        # Browsers send Origin on cross-site POSTs; don't let other sites sign users out.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Cross-site request refused"
+        )
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     response.delete_cookie(
         SESSION_COOKIE,
