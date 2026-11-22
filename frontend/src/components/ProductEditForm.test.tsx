@@ -86,6 +86,7 @@ describe("ProductEditForm", () => {
     [/name/i, "x".repeat(201), "Name must be 200 characters or fewer."],
     [/price/i, "", "Price is required."],
     [/price/i, "-1", "Price must be 0 or more."],
+    [/price/i, "1000000000.01", "Price must be 1,000,000,000 or less."],
   ])("rejects %s = %j without calling the API", async (label, value, message) => {
     const user = renderForm();
 
