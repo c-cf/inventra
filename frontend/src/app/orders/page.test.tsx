@@ -110,4 +110,18 @@ describe("OrdersPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
   });
+
+  it("signs the user out when filtering is rejected with 401", async () => {
+    setToken("tok");
+    vi.mocked(fetchOrders)
+      .mockResolvedValueOnce([order(1, "pending")])
+      .mockRejectedValueOnce(new ApiError(401, "Not authenticated"));
+    render(<OrdersPage />);
+    await screen.findByRole("link", { name: "#1" });
+
+    await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    expect(getToken()).toBeNull();
+  });
 });
