@@ -19,12 +19,9 @@ def list_products(
     conn: DbConn,
     _: CurrentUser,
     below: int | None = Query(default=None, ge=0),
+    q: str | None = Query(default=None, max_length=100),
 ) -> list[ProductOut]:
-    if below is not None:
-        items = products.get_low_stock_products(conn, below)
-    else:
-        items = products.list_all(conn)
-
+    items = products.find(conn, q=q.strip() if q else None, below=below)
     return [ProductOut.model_validate(item) for item in items]
 
 

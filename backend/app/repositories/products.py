@@ -142,3 +142,34 @@ def get_low_stock_products(
     ).fetchall()
 
     return [_to_product(row) for row in rows]
+
+
+_LIKE_ESCAPE = "!"
+
+
+def _like_pattern(text: str) -> str:
+    """Case-insensitive substring pattern in which %, _ and ! match themselves."""
+    escaped = (
+        text.lower()
+        .replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        .replace("%", f"{_LIKE_ESCAPE}%")
+        .replace("_", f"{_LIKE_ESCAPE}_")
+    )
+    return f"%{escaped}%"
+
+
+def find(
+    conn: sqlite3.Connection, *, q: str | None = None, below: int | None = None
+) -> list[Product]:
+    """Products matching an optional name/SKU search and low-stock threshold."""
+    clauses: list[str] = []
+    params: list[object] = []
+    if q:
+        clauses.append("(lower(name) LIKE ? ESCAPE '!' OR lower(sku) LIKE ? ESCAPE '!')")
+        params += [_like_pattern(q), _like_pattern(q)]
+    if below is not None:
+        clauses.append("quantity < ?")
+        params.append(below)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    rows = conn.execute(f"SELECT * FROM products {where} ORDER BY id", params).fetchall()
+    return [_to_product(row) for row in rows]
