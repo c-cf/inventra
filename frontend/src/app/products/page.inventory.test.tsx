@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProductsPage from "@/app/products/page";
 import {
+  ApiError,
   adjustStock,
   createProduct,
   fetchMe,
@@ -146,5 +147,77 @@ describe("ProductsPage stock movement history", () => {
 
     expect(await screen.findByText("damaged")).toBeInTheDocument();
     expect(fetchStockMovements).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("ProductsPage low-stock filter controls", () => {
+  async function renderPage() {
+    vi.mocked(fetchProducts).mockResolvedValueOnce([keyboard, cable]);
+    render(<ProductsPage />);
+    await screen.findByRole("cell", { name: "Mechanical Keyboard" });
+    return userEvent.setup();
+  }
+
+  it.each(["", "-1", "2.5"])("rejects the threshold %j without calling the API", async (threshold) => {
+    const user = await renderPage();
+
+    if (threshold) await user.type(screen.getByLabelText("Low stock threshold"), threshold);
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a non-negative integer threshold.");
+    expect(fetchProducts).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the backend's message when filtering fails", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
+
+    await user.type(screen.getByLabelText("Low stock threshold"), "5");
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
+  });
+
+  it("signs the user out when filtering is rejected with 401", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockRejectedValueOnce(new ApiError(401, "Not authenticated"));
+
+    await user.type(screen.getByLabelText("Low stock threshold"), "5");
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it("reloads every product and empties the threshold on clear", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockResolvedValueOnce([cable]).mockResolvedValueOnce([keyboard, cable]);
+
+    await user.type(screen.getByLabelText("Low stock threshold"), "5");
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    await waitFor(() => expect(screen.getByText("1 items")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Clear Filter" }));
+
+    expect(await screen.findByText("2 items")).toBeInTheDocument();
+    expect(fetchProducts).toHaveBeenLastCalledWith("tok");
+    expect(screen.getByLabelText("Low stock threshold")).toHaveValue(null);
+  });
+
+  it("shows the backend's message when clearing the filter fails", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
+
+    await user.click(screen.getByRole("button", { name: "Clear Filter" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Database unavailable");
+  });
+
+  it("signs the user out when clearing the filter is rejected with 401", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockRejectedValueOnce(new ApiError(401, "Not authenticated"));
+
+    await user.click(screen.getByRole("button", { name: "Clear Filter" }));
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 });
