@@ -266,3 +266,19 @@ def test_cancelling_an_order_restores_stock(client, auth_headers, make_product, 
         (-3, f"order #{order['id']}"),
         (3, f"order #{order['id']} cancelled"),
     ]
+
+
+def test_list_orders_filters_by_status(client, auth_headers, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+    pending = place(client, auth_headers, (keyboard["id"], 1)).json()
+    paid = place(client, auth_headers, (keyboard["id"], 1)).json()
+    set_status(client, auth_headers, paid["id"], "paid")
+
+    response = client.get("/orders?status=pending", headers=auth_headers)
+
+    assert response.status_code == 200
+    assert [order["id"] for order in response.json()] == [pending["id"]]
+
+
+def test_list_orders_rejects_an_unknown_status(client, auth_headers):
+    assert client.get("/orders?status=refunded", headers=auth_headers).status_code == 422
