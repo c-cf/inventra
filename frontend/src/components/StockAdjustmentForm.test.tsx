@@ -151,4 +151,25 @@ describe("StockAdjustmentForm", () => {
     expect(screen.getByLabelText("Stock change")).toHaveValue(null);
     expect(screen.getByLabelText("Adjustment reason")).toHaveValue("");
   });
+
+  it("forgets a selected product once it is no longer in the list", async () => {
+    const { rerender } = renderForm();
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    rerender(
+      <StockAdjustmentForm
+        token="tok"
+        products={[]}
+        onAdjusted={onAdjusted}
+        onUnauthorized={onUnauthorized}
+      />,
+    );
+    await user.type(screen.getByLabelText("Stock change"), "-1");
+    await user.type(screen.getByLabelText("Adjustment reason"), "oops");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    expect(adjustStock).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/select a product/i);
+  });
 });
