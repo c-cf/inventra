@@ -5,9 +5,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 OrderStatus = Literal["pending", "paid", "shipped", "cancelled"]
 
 
+# SQLite INTEGER is 64-bit; larger ids would overflow in the driver instead of a clean 422.
+MAX_ID = 2**63 - 1
+MAX_ORDER_QUANTITY = 1_000_000
+
+
 class OrderItemIn(BaseModel):
-    product_id: int
-    quantity: int = Field(gt=0)
+    product_id: int = Field(gt=0, le=MAX_ID)
+    quantity: int = Field(gt=0, le=MAX_ORDER_QUANTITY)
 
 
 class OrderCreate(BaseModel):

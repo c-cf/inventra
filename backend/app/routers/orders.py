@@ -1,13 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import orders
-from app.schemas.order import OrderCreate, OrderOut, OrderStatus, OrderStatusUpdate
+from app.schemas.order import MAX_ID, OrderCreate, OrderOut, OrderStatus, OrderStatusUpdate
 from app.services import orders as order_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+OrderId = Annotated[int, Path(gt=0, le=MAX_ID)]
 
 
 @router.get("", response_model=list[OrderOut])
@@ -22,7 +24,7 @@ def list_orders(
 
 
 @router.get("/{order_id}", response_model=OrderOut)
-def get_order(order_id: int, conn: DbConn, _: CurrentUser) -> OrderOut:
+def get_order(order_id: OrderId, conn: DbConn, _: CurrentUser) -> OrderOut:
     order = orders.get_by_id(conn, order_id)
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
@@ -53,7 +55,7 @@ def create_order(payload: OrderCreate, conn: DbConn, current_user: CurrentUser) 
 
 @router.patch("/{order_id}", response_model=OrderOut)
 def update_order_status(
-    order_id: int, payload: OrderStatusUpdate, conn: DbConn, _: CurrentUser
+    order_id: OrderId, payload: OrderStatusUpdate, conn: DbConn, _: CurrentUser
 ) -> OrderOut:
     try:
         order = order_service.change_status(conn, order_id, payload.status)
