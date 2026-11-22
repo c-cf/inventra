@@ -86,7 +86,7 @@ beforeEach(() => {
 });
 
 describe("ProductsPage with an active low-stock filter", () => {
-  it("does not add a created product whose quantity is at or above the threshold", async () => {
+  it("does not add a created product whose quantity is above the threshold", async () => {
     const user = await renderFilteredBelow("5", [cable]);
     vi.mocked(createProduct).mockResolvedValue(product({ id: 3, sku: "MS-002", name: "Mouse", quantity: 10 }));
 
@@ -94,6 +94,15 @@ describe("ProductsPage with an active low-stock filter", () => {
 
     expect(within(productTable()).queryByText("Mouse")).not.toBeInTheDocument();
     expect(screen.getByText("1 items")).toBeInTheDocument();
+  });
+
+  it("does not add a created product whose quantity equals the threshold", async () => {
+    const user = await renderFilteredBelow("5", [cable]);
+    vi.mocked(createProduct).mockResolvedValue(product({ id: 3, sku: "MS-002", name: "Mouse", quantity: 5 }));
+
+    await addProduct(user, "5");
+
+    expect(within(productTable()).queryByText("Mouse")).not.toBeInTheDocument();
   });
 
   it("adds a created product whose quantity is below the threshold", async () => {
