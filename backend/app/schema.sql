@@ -49,9 +49,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     UNIQUE (order_id, product_id)
 );
 
--- SKUs and usernames are identifiers people type: "kb-001" and "KB-001" (or
--- "carol" and "CAROL") must not both exist. The column UNIQUE constraints above
--- compare case-sensitively, so add case-insensitive ones. (On an existing
--- database that already holds such duplicates, this fails until they are fixed.)
-CREATE UNIQUE INDEX IF NOT EXISTS products_sku_nocase ON products (sku COLLATE NOCASE);
-CREATE UNIQUE INDEX IF NOT EXISTS users_username_nocase ON users (username COLLATE NOCASE);
+-- products.sku and users.username also get case-insensitive unique indexes
+-- ("kb-001" vs "KB-001"). app/db.py creates them after this script, so that a
+-- database which already holds such duplicates still starts and says which rows
+-- to fix instead of failing here.

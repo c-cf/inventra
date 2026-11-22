@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app.db import init_db
 from app.main import app
 from app.repositories import products, users
+from app.repositories.products import DuplicateSkuError
 
 NOCASE_INDEXES = ("products_sku_nocase", "users_username_nocase")
 
@@ -86,7 +87,7 @@ def test_init_db_applies_the_rule_once_the_duplicates_are_fixed(db):
     init_db(db)
 
     assert _has_index(db, "products_sku_nocase")
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(DuplicateSkuError):
         _add_product(db, "kb-002")
 
 
