@@ -304,3 +304,28 @@ def test_create_order_rejects_out_of_range_integers(client, auth_headers, make_p
 def test_order_paths_reject_out_of_range_ids(client, auth_headers):
     assert client.get(f"/orders/{HUGE}", headers=auth_headers).status_code == 422
     assert set_status(client, auth_headers, HUGE, "paid").status_code == 422
+
+
+def test_orders_keep_the_product_details_from_when_they_were_placed(
+    client, auth_headers, make_product
+):
+    keyboard = make_product("KB-001", price=89.0, quantity=10)
+    order = place(client, auth_headers, (keyboard["id"], 2)).json()
+
+    client.patch(
+        f"/products/{keyboard['id']}",
+        json={"sku": "KB-NEW", "name": "Renamed", "price": 120.0},
+        headers=auth_headers,
+    )
+
+    assert client.get(f"/orders/{order['id']}", headers=auth_headers).json() == order
+
+
+def test_line_totals_and_totals_are_rounded_to_cents(client, auth_headers, make_product):
+    cable = make_product("CB-001", price=0.1, quantity=10)
+    adapter = make_product("AD-001", price=0.2, quantity=10)
+
+    order = place(client, auth_headers, (cable["id"], 3), (adapter["id"], 1)).json()
+
+    assert [item["line_total"] for item in order["items"]] == [0.3, 0.2]
+    assert order["total"] == 0.5
