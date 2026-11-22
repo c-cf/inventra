@@ -50,13 +50,27 @@ describe("UsersPage", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(4);
   });
 
-  it("tells staff that the page needs the admin role", async () => {
+  it("tells staff the page is for admins and keeps the header and a way back (#29)", async () => {
     vi.mocked(fetchMe).mockResolvedValue({ id: 2, username: "bob", role: "staff" });
     vi.mocked(fetchUsers).mockRejectedValue(new ApiError(403, "Admin role required"));
 
     render(<UsersPage />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Admin role required");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Only admins can manage users.");
+    expect(screen.getByRole("banner")).toHaveTextContent("bob");
+    expect(screen.getByRole("link", { name: "Back to products" })).toHaveAttribute(
+      "href",
+      "/products",
+    );
+    expect(screen.queryByRole("button", { name: "Create user" })).not.toBeInTheDocument();
+  });
+
+  it("still shows other load errors as they are", async () => {
+    vi.mocked(fetchUsers).mockRejectedValue(new TypeError("Failed to fetch"));
+
+    render(<UsersPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to fetch");
   });
 
   it("updates a row after a role change", async () => {

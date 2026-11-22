@@ -149,6 +149,29 @@ describe("StockAdjustmentForm", () => {
     expect(adjustStock).toHaveBeenCalledWith(1, 5, "restock");
     expect(screen.getByLabelText("Stock change")).toHaveValue(null);
     expect(screen.getByLabelText("Adjustment reason")).toHaveValue("");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Mechanical Keyboard now has 30 in stock.",
+    );
+  });
+
+  it("drops the last confirmation when the next adjustment fails", async () => {
+    vi.mocked(adjustStock)
+      .mockResolvedValueOnce({ ...keyboard, quantity: 30 })
+      .mockRejectedValueOnce(new ApiError(409, "Insufficient stock"));
+    renderForm();
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    await user.type(screen.getByLabelText("Stock change"), "5");
+    await user.type(screen.getByLabelText("Adjustment reason"), "restock");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+    expect(await screen.findByRole("status")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Stock change"), "-99");
+    await user.type(screen.getByLabelText("Adjustment reason"), "damaged");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Insufficient stock");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("forgets a selected product once it is no longer in the list", async () => {
