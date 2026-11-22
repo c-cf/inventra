@@ -210,4 +210,18 @@ describe("OrderForm", () => {
       await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
     });
   });
+
+  it("stays disabled after a successful order so a second click cannot place it twice", async () => {
+    vi.mocked(createOrder).mockResolvedValue(created);
+    const user = renderForm();
+
+    await user.type(screen.getByLabelText("Customer"), "ACME Corp");
+    await fillLine(user, 1, "1", "2");
+    await user.click(screen.getByRole("button", { name: "Place order" }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+    await user.click(screen.getByRole("button", { name: /plac/i }));
+
+    expect(createOrder).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: /plac/i })).toBeDisabled();
+  });
 });
