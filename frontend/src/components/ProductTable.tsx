@@ -1,10 +1,9 @@
 import type { Product } from "@/lib/api";
+import { formatCurrency } from "@/lib/format";
 
 type ProductTableProps = {
   products: Product[];
 };
-
-const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 export function ProductTable({ products }: ProductTableProps) {
   if (products.length === 0) {
@@ -31,7 +30,7 @@ export function ProductTable({ products }: ProductTableProps) {
             <tr key={product.id}>
               <td className="px-4 py-3 font-mono text-xs">{product.sku}</td>
               <td className="px-4 py-3">{product.name}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{currency.format(product.price)}</td>
+              <td className="px-4 py-3 text-right tabular-nums">{formatCurrency(product.price)}</td>
               <td className="px-4 py-3 text-right tabular-nums">
                 {product.quantity}
                 {product.quantity === 0 && (
