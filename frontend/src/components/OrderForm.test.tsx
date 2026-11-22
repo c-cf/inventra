@@ -205,7 +205,7 @@ describe("OrderForm", () => {
 
       await submitValidOrder(user);
 
-      expect(screen.getByRole("button", { name: "Placing¡K" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Placingâ€¦" })).toBeDisabled();
       resolve(created);
       await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
     });
