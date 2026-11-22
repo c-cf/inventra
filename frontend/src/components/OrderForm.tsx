@@ -71,22 +71,17 @@ export function OrderForm({
   const placedOrder = useRef(false);
 
   // Next.js keeps this page mounted (hidden) after navigating to the new order, and
-  // shows it again on the way back. Start the next order from a clean, unlocked form;
-  // an unsent draft is left alone. The cleanup runs when the page is hidden; the setup
-  // runs when it is shown again, which catches an order that went through after the
-  // user had already left.
+  // shows it again on the way back. Layout effects run again each time it is shown,
+  // before paint: start the next order from a clean, unlocked form, including when the
+  // order went through after the user had already left. An unsent draft is left alone.
   useLayoutEffect(() => {
-    function startFreshAfterOrder() {
-      if (!placedOrder.current) return;
-      placedOrder.current = false;
-      submitting.current = false;
-      setPending(false);
-      setCustomer("");
-      setLines(EMPTY_LINES);
-      setError(null);
-    }
-    startFreshAfterOrder();
-    return startFreshAfterOrder;
+    if (!placedOrder.current) return;
+    placedOrder.current = false;
+    submitting.current = false;
+    setPending(false);
+    setCustomer("");
+    setLines(EMPTY_LINES);
+    setError(null);
   }, []);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
