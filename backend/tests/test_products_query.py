@@ -123,3 +123,50 @@ def test_a_product_that_was_ordered_cannot_be_deleted(client, auth_headers, cata
     assert response.status_code == 409
     assert response.json()["detail"] == "Product has orders and cannot be deleted"
     assert client.get(f"/products/{keyboard['id']}", headers=auth_headers).status_code == 200
+
+
+HUGE = 10**20  # larger than SQLite's 64-bit INTEGER
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "body"),
+    [
+        ("get", f"/products/{HUGE}", None),
+        ("patch", f"/products/{HUGE}", {"name": "x"}),
+        ("delete", f"/products/{HUGE}", None),
+        ("post", f"/products/{HUGE}/adjust", {"change": 1, "reason": "x"}),
+        ("get", f"/products/{HUGE}/movements", None),
+        ("get", "/products", {"below": HUGE}),
+        ("get", "/products", {"offset": HUGE}),
+    ],
+)
+def test_product_endpoints_reject_out_of_range_integers(
+    client, auth_headers, method, path, body
+):
+    if method == "get":
+        response = client.get(path, params=body, headers=auth_headers)
+    else:
+        response = client.request(method, path, json=body, headers=auth_headers)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"sku": "BIG-1", "name": "Big", "price": 1, "quantity": HUGE},
+        {"sku": "BIG-2", "name": "Big", "price": 1e309},
+    ],
+)
+def test_create_product_rejects_out_of_range_numbers(client, auth_headers, payload):
+    assert client.post("/products", json=payload, headers=auth_headers).status_code == 422
+
+
+def test_adjust_rejects_an_out_of_range_change(client, auth_headers, catalogue):
+    response = client.post(
+        f"/products/{catalogue[0]['id']}/adjust",
+        json={"change": HUGE, "reason": "x"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 422
