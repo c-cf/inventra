@@ -11,6 +11,11 @@ class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
 
 
+def _is_duplicate_sku(exc: sqlite3.IntegrityError) -> bool:
+    # Match the UNIQUE violation only: a NOT NULL failure also mentions products.sku.
+    return "UNIQUE constraint failed: products.sku" in str(exc)
+
+
 def _to_product(row: sqlite3.Row) -> Product:
     return Product(
         id=row["id"],
@@ -31,7 +36,7 @@ def create(
             (sku, name, price, quantity),
         )
     except sqlite3.IntegrityError as exc:
-        if "UNIQUE constraint failed: products.sku" in str(exc):
+        if _is_duplicate_sku(exc):
             raise DuplicateSkuError(sku) from exc
         raise
     conn.commit()
@@ -59,7 +64,7 @@ def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | Non
                 (*fields.values(), product_id),
             )
         except sqlite3.IntegrityError as exc:
-            if "UNIQUE constraint failed: products.sku" in str(exc):
+            if _is_duplicate_sku(exc):
                 raise DuplicateSkuError(fields["sku"]) from exc
             raise
         conn.commit()
