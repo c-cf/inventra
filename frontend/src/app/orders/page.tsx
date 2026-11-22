@@ -6,7 +6,8 @@ import { useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { OrderTable } from "@/components/OrderTable";
 import { PageStatus } from "@/components/PageStatus";
-import { ApiError, fetchOrders, type Order, ORDER_STATUSES, type OrderStatus } from "@/lib/api";
+import { ApiError, fetchOrders, ORDER_STATUSES, type OrderStatus } from "@/lib/api";
+import { loadForLatest } from "@/lib/loadForLatest";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function OrdersPage() {
@@ -15,19 +16,11 @@ export default function OrdersPage() {
   const appliedStatus = useRef<OrderStatus | undefined>(undefined);
 
   // Next keeps this page mounted while hidden and reloads it when the user comes back.
-  // Reload with the applied status, and ask again if it changed while the request was
-  // out, so the list never falls back to another status than the select shows (#37).
-  async function loadForAppliedStatus(): Promise<Order[]> {
-    let status: OrderStatus | undefined;
-    let orders: Order[];
-    do {
-      status = appliedStatus.current;
-      orders = await fetchOrders(status);
-    } while (appliedStatus.current !== status);
-    return orders;
-  }
-
-  const { state, setData, signOut } = useAuthedLoad(loadForAppliedStatus);
+  // Reload with the applied status, and again if it changed while the request was out,
+  // so the list never falls back to another status than the select shows (#37).
+  const { state, setData, signOut } = useAuthedLoad(() =>
+    loadForLatest(appliedStatus, fetchOrders),
+  );
   const [statusFilter, setStatusFilter] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filtering, setFiltering] = useState(false);
