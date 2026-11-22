@@ -51,7 +51,7 @@ describe("OrdersPage", () => {
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "New order" })).toHaveAttribute("href", "/orders/new");
-    expect(fetchOrders).toHaveBeenCalledWith();
+    expect(fetchOrders).toHaveBeenCalledWith(undefined); // no status filter yet
   });
 
   it("filters by status and back to all", async () => {
