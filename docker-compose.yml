@@ -1,0 +1,37 @@
+# One-command local stack: `docker compose up --build`, then open http://localhost:3000
+# (sign in as admin / admin123 or staff / staff123). Data persists in the
+# `inventra-data` volume; `docker compose down -v` wipes it.
+services:
+  backend:
+    build: ./backend
+    # Values under `environment` win over backend/.env, so a copied .env.example
+    # cannot move the database out of the volume.
+    environment:
+      INVENTRA_DB_PATH: /data/inventra.db
+      INVENTRA_CORS_ORIGINS: http://localhost:3000
+      INVENTRA_SEED: "1"
+    # Optional overrides, e.g. INVENTRA_SECRET_KEY (the built-in dev key is public).
+    # The path/required form needs Docker Compose 2.24 or newer.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    # Local only: published on 127.0.0.1, not on every interface.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - inventra-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # The browser calls the API directly, so this is the host-side address.
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  inventra-data:
