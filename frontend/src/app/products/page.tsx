@@ -1,7 +1,7 @@
 
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { PageStatus } from "@/components/PageStatus";
@@ -43,10 +43,12 @@ export default function ProductsPage() {
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
   const [active, setActive] = useState<Filters>(NO_FILTERS);
+  // Create and adjust responses can land after the filters changed; read the latest ones.
+  const activeRef = useRef<Filters>(NO_FILTERS);
   const [movementsVersion, setMovementsVersion] = useState(0);
 
   function handleCreated(product: Product) {
-    if (!matchesFilter(product, active)) return;
+    if (!matchesFilter(product, activeRef.current)) return;
 
     setProducts((products) => [...products, product]);
   }
@@ -56,7 +58,7 @@ export default function ProductsPage() {
     setProducts((products) =>
       products
         .map((item) => (item.id === product.id ? product : item))
-        .filter((item) => matchesFilter(item, active)),
+        .filter((item) => matchesFilter(item, activeRef.current)),
     );
   }
 
@@ -71,6 +73,7 @@ export default function ProductsPage() {
       const products = await fetchProducts(state.token, toQuery(next));
 
       setProducts(() => products);
+      activeRef.current = next;
       setActive(next);
       return true;
     } catch (error) {
