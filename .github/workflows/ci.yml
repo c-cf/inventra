@@ -71,3 +71,29 @@ jobs:
           path: frontend/coverage
           if-no-files-found: ignore
       - run: npm run build
+
+  docker:
+    name: Docker (compose build + smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build and start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 300
+      - name: Smoke test the running containers
+        run: |
+          set -euo pipefail
+          curl --fail --silent http://localhost:8000/health
+          TOKEN=$(curl --fail --silent -X POST http://localhost:8000/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"admin","password":"admin123"}' \
+            | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')
+          curl --fail --silent -H "Authorization: Bearer $TOKEN" http://localhost:8000/products \
+            | python3 -c 'import json, sys; products = json.load(sys.stdin); assert len(products) >= 4, products'
+          curl --fail --silent http://localhost:3000/login | grep -q "Sign in"
+          echo "Stack is up: API answers, seeded admin can log in, UI serves /login."
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: ${{ !cancelled() }}
+        run: docker compose down --volumes
