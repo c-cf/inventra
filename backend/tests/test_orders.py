@@ -253,7 +253,7 @@ def test_cancelling_an_order_restores_stock(client, auth_headers, make_product, 
     mouse = make_product("MS-001", quantity=5)
     order = place(client, auth_headers, (keyboard["id"], 3), (mouse["id"], 5)).json()
     for step in path:
-        set_status(client, auth_headers, order["id"], step)
+        assert set_status(client, auth_headers, order["id"], step).status_code == 200
 
     response = set_status(client, auth_headers, order["id"], "cancelled")
 
@@ -272,7 +272,7 @@ def test_list_orders_filters_by_status(client, auth_headers, make_product):
     keyboard = make_product("KB-001", quantity=10)
     pending = place(client, auth_headers, (keyboard["id"], 1)).json()
     paid = place(client, auth_headers, (keyboard["id"], 1)).json()
-    set_status(client, auth_headers, paid["id"], "paid")
+    assert set_status(client, auth_headers, paid["id"], "paid").status_code == 200
 
     response = client.get("/orders?status=pending", headers=auth_headers)
 
