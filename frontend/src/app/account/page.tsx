@@ -27,7 +27,7 @@ export default function AccountPage() {
 
         <section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-lg font-semibold">Change password</h2>
-          <ChangePasswordForm token={state.token} onUnauthorized={signOut} />
+          <ChangePasswordForm onUnauthorized={signOut} />
         </section>
       </main>
     </div>

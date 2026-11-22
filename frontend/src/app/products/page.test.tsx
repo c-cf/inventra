@@ -12,7 +12,6 @@ import {
   fetchProducts,
   fetchStockMovements,
 } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({
   replace: vi.fn(),
@@ -61,15 +60,15 @@ beforeEach(() => {
 });
 
 describe("ProductsPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<ProductsPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
-    expect(fetchProducts).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows the signed-in user and the product list", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -81,11 +80,10 @@ describe("ProductsPage", () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText("alice")).toBeInTheDocument();
-    expect(fetchProducts).toHaveBeenCalledWith("tok");
+    expect(fetchProducts).toHaveBeenCalledWith();
   });
 
-  it("clears a rejected token and redirects to /login", async () => {
-    setToken("stale");
+  it("sends a rejected session to /login", async () => {
 
     vi.mocked(fetchMe).mockRejectedValue(
       new ApiError(401, "Not authenticated"),
@@ -100,12 +98,9 @@ describe("ProductsPage", () => {
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith("/login");
     });
-
-    expect(getToken()).toBeNull();
   });
 
   it("shows an error when the backend cannot be reached", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockRejectedValue(
       new TypeError("Failed to fetch"),
@@ -125,7 +120,6 @@ describe("ProductsPage", () => {
   });
 
   it("adds a newly created product to the table", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -156,7 +150,7 @@ describe("ProductsPage", () => {
       screen.getByRole("button", { name: /add product/i }),
     );
 
-    expect(createProduct).toHaveBeenCalledWith("tok", {
+    expect(createProduct).toHaveBeenCalledWith({
       sku: "MS-002",
       name: "Mouse",
       price: 25,
@@ -168,7 +162,6 @@ describe("ProductsPage", () => {
   });
 
   it("sends the user to /login when creating a product is rejected with 401", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -195,13 +188,10 @@ describe("ProductsPage", () => {
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith("/login");
     });
-
-    expect(getToken()).toBeNull();
   });
 
   // Inventory TDD: Low Stock Filter
   it("filters products by low stock threshold", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
 
@@ -225,7 +215,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(fetchProducts).toHaveBeenCalledWith("tok", { below: 5 });
+      expect(fetchProducts).toHaveBeenCalledWith({ below: 5 });
     });
 
     expect(
@@ -235,7 +225,6 @@ describe("ProductsPage", () => {
 
   // Inventory TDD: Stock Adjustment
   it("adjusts product stock and updates the displayed quantity", async () => {
-    setToken("tok");
 
     vi.mocked(fetchMe).mockResolvedValue(alice);
     vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -271,9 +260,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(adjustStock).toHaveBeenCalledWith(
-        "tok",
-        1,
+      expect(adjustStock).toHaveBeenCalledWith(1,
         5,
         "restock",
       );
@@ -287,7 +274,6 @@ describe("ProductsPage", () => {
 
 
 it("displays stock movement history for a selected product", async () => {
-  setToken("tok");
 
   vi.mocked(fetchMe).mockResolvedValue(alice);
   vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
@@ -325,7 +311,7 @@ it("displays stock movement history for a selected product", async () => {
   );
 
   await waitFor(() => {
-    expect(fetchStockMovements).toHaveBeenCalledWith("tok", 1);
+    expect(fetchStockMovements).toHaveBeenCalledWith(1);
   });
 
   expect(await screen.findByText("restock")).toBeInTheDocument();

@@ -56,19 +56,19 @@ describe("login", () => {
 });
 
 describe("fetchProducts", () => {
-  it("sends the bearer token and returns the product list", async () => {
+  it("returns the product list", async () => {
     const products = [
       { id: 1, sku: "KB-001", name: "Keyboard", price: 89, quantity: 25, created_at: "2026-01-01" },
     ];
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(products));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchProducts("tok");
+    const result = await fetchProducts();
 
     expect(result).toEqual(products);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8000/products");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 
   it("throws an ApiError with status 401 when the token is rejected", async () => {
@@ -77,37 +77,37 @@ describe("fetchProducts", () => {
       vi.fn().mockResolvedValue(jsonResponse({ detail: "Not authenticated" }, 401)),
     );
 
-    await expect(fetchProducts("expired")).rejects.toMatchObject({ status: 401 });
+    await expect(fetchProducts()).rejects.toMatchObject({ status: 401 });
   });
 
   it("filters products using the below query parameter", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchProducts("tok", { below: 5 });
+    await fetchProducts({ below: 5 });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
     expect(url).toBe("http://localhost:8000/products?below=5");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 });
 
 describe("createProduct", () => {
-  it("posts the product with the bearer token and returns the created product", async () => {
+  it("posts the product and returns the created product", async () => {
     const created = { id: 7, sku: "MS-002", name: "Mouse", price: 25, quantity: 10, created_at: "2026-11-09" };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(created, 201));
     vi.stubGlobal("fetch", fetchMock);
 
     const input = { sku: "MS-002", name: "Mouse", price: 25, quantity: 10 };
-    const result = await createProduct("tok", input);
+    const result = await createProduct(input);
 
     expect(result).toEqual(created);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8000/products");
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify(input));
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 
   it("turns FastAPI validation errors into a readable message", async () => {
@@ -126,7 +126,7 @@ describe("createProduct", () => {
       ),
     );
 
-    const promise = createProduct("tok", { sku: "", name: "Mouse", price: -1, quantity: 0 });
+    const promise = createProduct({ sku: "", name: "Mouse", price: -1, quantity: 0 });
 
     await expect(promise).rejects.toMatchObject({
       status: 422,
@@ -149,13 +149,13 @@ describe("adjustStock", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await adjustStock("tok", 3, 5, "restock");
+    await adjustStock(3, 5, "restock");
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
     expect(url).toBe("http://localhost:8000/products/3/adjust");
     expect(init.method).toBe("POST");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
     expect(JSON.parse(init.body as string)).toEqual({
       change: 5,
       reason: "restock",
@@ -168,7 +168,7 @@ describe("adjustStock", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await adjustStock("tok", 3, -2, "sold");
+    await adjustStock(3, -2, "sold");
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
@@ -203,7 +203,7 @@ describe("fetchStockMovements", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchStockMovements("tok", 3);
+    const result = await fetchStockMovements(3);
 
     const [url, init] = fetchMock.mock.calls[0] as [
       string,
@@ -213,9 +213,7 @@ describe("fetchStockMovements", () => {
     expect(url).toBe(
       "http://localhost:8000/products/3/movements",
     );
-    expect(new Headers(init.headers).get("authorization")).toBe(
-      "Bearer tok",
-    );
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
     expect(result).toEqual(movements);
   });
 
@@ -225,23 +223,23 @@ describe("fetchStockMovements", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await fetchStockMovements("tok", 3);
+    const result = await fetchStockMovements(3);
 
     expect(result).toEqual([]);
   });
 });
 
 describe("fetchMe", () => {
-  it("sends the bearer token and returns the current user", async () => {
+  it("returns the current user", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ id: 1, username: "alice", role: "admin" }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const user = await fetchMe("tok");
+    const user = await fetchMe();
 
     expect(user).toEqual({ id: 1, username: "alice", role: "admin" });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8000/auth/me");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 });
 
@@ -252,7 +250,7 @@ describe("error responses", () => {
       vi.fn().mockResolvedValue(new Response("<html>Bad Gateway</html>", { status: 502 })),
     );
 
-    await expect(fetchMe("tok")).rejects.toMatchObject({
+    await expect(fetchMe()).rejects.toMatchObject({
       status: 502,
       message: "Request failed with status 502",
     });
@@ -261,7 +259,7 @@ describe("error responses", () => {
   it("falls back to a generic message when the JSON body has no detail", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "boom" }, 500)));
 
-    await expect(fetchMe("tok")).rejects.toMatchObject({
+    await expect(fetchMe()).rejects.toMatchObject({
       status: 500,
       message: "Request failed with status 500",
     });

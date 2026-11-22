@@ -34,7 +34,7 @@ describe("fetchProducts search", () => {
   it("sends the search text with the low-stock threshold", async () => {
     const fetchMock = stubFetch(json([]));
 
-    await fetchProducts("tok", { q: "usb hub", below: 5 });
+    await fetchProducts({ q: "usb hub", below: 5 });
 
     expect(lastCall(fetchMock).url).toBe("http://localhost:8000/products?below=5&q=usb+hub");
   });
@@ -42,7 +42,7 @@ describe("fetchProducts search", () => {
   it("leaves out blank search text", async () => {
     const fetchMock = stubFetch(json([]));
 
-    await fetchProducts("tok", { q: "   " });
+    await fetchProducts({ q: "   " });
 
     expect(lastCall(fetchMock).url).toBe("http://localhost:8000/products");
   });
@@ -52,20 +52,20 @@ describe("updateProduct", () => {
   it("patches the given fields", async () => {
     const fetchMock = stubFetch(json({ ...keyboard, name: "Keyboard" }));
 
-    const updated = await updateProduct("tok", 1, { name: "Keyboard", price: 79 });
+    const updated = await updateProduct(1, { name: "Keyboard", price: 79 });
 
     expect(updated.name).toBe("Keyboard");
     const { url, init, headers } = lastCall(fetchMock);
     expect(url).toBe("http://localhost:8000/products/1");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ name: "Keyboard", price: 79 }));
-    expect(headers.get("authorization")).toBe("Bearer tok");
+    expect(headers.get("authorization")).toBeNull();
   });
 
   it("surfaces a duplicate SKU", async () => {
     stubFetch(json({ detail: "SKU already exists" }, 409));
 
-    await expect(updateProduct("tok", 1, { sku: "MS-001" })).rejects.toMatchObject({
+    await expect(updateProduct(1, { sku: "MS-001" })).rejects.toMatchObject({
       status: 409,
       message: "SKU already exists",
     });
@@ -76,7 +76,7 @@ describe("deleteProduct", () => {
   it("sends DELETE and accepts an empty 204 response", async () => {
     const fetchMock = stubFetch(new Response(null, { status: 204 }));
 
-    await expect(deleteProduct("tok", 1)).resolves.toBeUndefined();
+    await expect(deleteProduct(1)).resolves.toBeUndefined();
 
     const { url, init } = lastCall(fetchMock);
     expect(url).toBe("http://localhost:8000/products/1");
@@ -86,7 +86,7 @@ describe("deleteProduct", () => {
   it("surfaces the reason a product cannot be deleted", async () => {
     stubFetch(json({ detail: "Product has orders and cannot be deleted" }, 409));
 
-    await expect(deleteProduct("tok", 1)).rejects.toMatchObject({
+    await expect(deleteProduct(1)).rejects.toMatchObject({
       status: 409,
       message: "Product has orders and cannot be deleted",
     });
@@ -97,8 +97,8 @@ describe("fetchProduct", () => {
   it("fetches one product by id", async () => {
     const fetchMock = stubFetch(json(keyboard));
 
-    expect(await fetchProduct("tok", 1)).toEqual(keyboard);
+    expect(await fetchProduct(1)).toEqual(keyboard);
     expect(lastCall(fetchMock).url).toBe("http://localhost:8000/products/1");
-    expect(lastCall(fetchMock).headers.get("authorization")).toBe("Bearer tok");
+    expect(lastCall(fetchMock).headers.get("authorization")).toBeNull();
   });
 });

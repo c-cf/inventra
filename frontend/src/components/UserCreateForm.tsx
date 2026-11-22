@@ -6,7 +6,6 @@ import { ApiError, createUser, type Role, ROLES, type UserSummary } from "@/lib/
 import { newPasswordProblem } from "@/lib/passwords";
 
 type UserCreateFormProps = {
-  token: string;
   onCreated: (user: UserSummary) => void;
   onUnauthorized: () => void;
 };
@@ -27,7 +26,7 @@ function validate(username: string, password: string): string | null {
   return newPasswordProblem(password);
 }
 
-export function UserCreateForm({ token, onCreated, onUnauthorized }: Readonly<UserCreateFormProps>) {
+export function UserCreateForm({ onCreated, onUnauthorized }: Readonly<UserCreateFormProps>) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("staff");
@@ -44,7 +43,7 @@ export function UserCreateForm({ token, onCreated, onUnauthorized }: Readonly<Us
 
     setPending(true);
     try {
-      onCreated(await createUser(token, { username: name, password, role }));
+      onCreated(await createUser({ username: name, password, role }));
       setUsername("");
       setPassword("");
       setRole("staff");

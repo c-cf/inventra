@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import UsersPage from "@/app/users/page";
 import { ApiError, createUser, fetchMe, fetchUsers, updateUserRole, type UserSummary } from "@/lib/api";
-import { setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -31,14 +30,15 @@ beforeEach(() => {
 });
 
 describe("UsersPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<UsersPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("lets an admin see the users and add one", async () => {
-    setToken("tok");
     const carol: UserSummary = { id: 3, username: "carol", role: "staff", created_at: "2026-11-23 09:00:00" };
     vi.mocked(createUser).mockResolvedValue(carol);
     render(<UsersPage />);
@@ -55,7 +55,6 @@ describe("UsersPage", () => {
   });
 
   it("tells staff that the page needs the admin role", async () => {
-    setToken("tok");
     vi.mocked(fetchMe).mockResolvedValue({ id: 2, username: "bob", role: "staff" });
     vi.mocked(fetchUsers).mockRejectedValue(new ApiError(403, "Admin role required"));
 
@@ -65,7 +64,6 @@ describe("UsersPage", () => {
   });
 
   it("updates a row after a role change", async () => {
-    setToken("tok");
     vi.mocked(updateUserRole).mockResolvedValue({ ...bob, role: "admin" });
     render(<UsersPage />);
 

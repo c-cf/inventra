@@ -17,10 +17,10 @@ export function ProductDetail() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const productId = parsePositiveId(params.id);
-  const { state, setData, signOut } = useAuthedLoad((token) =>
+  const { state, setData, signOut } = useAuthedLoad(() =>
     productId === null
       ? Promise.reject(new ApiError(404, "Product not found"))
-      : fetchProduct(token, productId),
+      : fetchProduct(productId),
   );
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function ProductDetail() {
     setDeleteError(null);
     setDeleting(true);
     try {
-      await deleteProduct(state.token, product.id);
+      await deleteProduct(product.id);
       router.push("/products");
     } catch (err) {
       setDeleting(false);
@@ -80,7 +80,6 @@ export function ProductDetail() {
         <section className="space-y-3 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-lg font-semibold">Edit product</h2>
           <ProductEditForm
-            token={state.token}
             product={product}
             onSaved={(saved) => setData(() => saved)}
             onUnauthorized={signOut}

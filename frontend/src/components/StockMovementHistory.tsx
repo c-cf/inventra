@@ -10,7 +10,6 @@ import {
 } from "@/lib/api";
 
 type Props = {
-  token: string;
   products: Product[];
   onUnauthorized: () => void;
   /** Bump this after stock changes so the history on screen is fetched again. */
@@ -18,7 +17,6 @@ type Props = {
 };
 
 export function StockMovementHistory({
-  token,
   products,
   onUnauthorized,
   refreshKey = 0,
@@ -71,7 +69,7 @@ export function StockMovementHistory({
     setSearched(false);
 
     try {
-      const result = await fetchStockMovements(token, id);
+      const result = await fetchStockMovements(id);
       if (request !== latestRequest.current) return;
 
       setMovements(result);
@@ -91,7 +89,7 @@ export function StockMovementHistory({
 
     const request = ++latestRequest.current;
 
-    fetchStockMovements(token, id).then(
+    fetchStockMovements(id).then(
       (result) => {
         if (request !== latestRequest.current) return;
         setMovements(result);
@@ -102,7 +100,7 @@ export function StockMovementHistory({
         if (request === latestRequest.current) onRefreshError(err);
       },
     );
-  }, [refreshKey, token]);
+  }, [refreshKey]);
 
   return (
     <section className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">

@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AccountPage from "@/app/account/page";
 import { ApiError, changePassword, fetchMe } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -24,14 +23,15 @@ beforeEach(() => {
 });
 
 describe("AccountPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<AccountPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("shows who is signed in and the password form", async () => {
-    setToken("tok");
 
     render(<AccountPage />);
 
@@ -41,7 +41,6 @@ describe("AccountPage", () => {
   });
 
   it("signs the user out when the password change is rejected with 401", async () => {
-    setToken("tok");
     vi.mocked(changePassword).mockRejectedValue(new ApiError(401, "Not authenticated"));
     render(<AccountPage />);
     const user = userEvent.setup();
@@ -52,6 +51,5 @@ describe("AccountPage", () => {
     await user.click(screen.getByRole("button", { name: "Change password" }));
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 });

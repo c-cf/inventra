@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import OrdersPage from "@/app/orders/page";
 import { ApiError, fetchMe, fetchOrders, type Order } from "@/lib/api";
-import { getToken, setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -39,15 +38,15 @@ beforeEach(() => {
 });
 
 describe("OrdersPage", () => {
-  it("redirects to /login when no token is stored", () => {
+  it("redirects to /login when there is no session", async () => {
+    vi.mocked(fetchMe).mockRejectedValue(new ApiError(401, "Not authenticated"));
+
     render(<OrdersPage />);
 
-    expect(router.replace).toHaveBeenCalledWith("/login");
-    expect(fetchOrders).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
   });
 
   it("lists the orders and links to the new order page", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders).mockResolvedValue([order(2, "paid"), order(1, "pending")]);
 
     render(<OrdersPage />);
@@ -57,11 +56,10 @@ describe("OrdersPage", () => {
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "New order" })).toHaveAttribute("href", "/orders/new");
-    expect(fetchOrders).toHaveBeenCalledWith("tok");
+    expect(fetchOrders).toHaveBeenCalledWith();
   });
 
   it("filters by status and back to all", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders)
       .mockResolvedValueOnce([order(2, "paid"), order(1, "pending")])
       .mockResolvedValueOnce([order(2, "paid")])
@@ -72,25 +70,22 @@ describe("OrdersPage", () => {
 
     await user.selectOptions(screen.getByLabelText("Status"), "paid");
     await waitFor(() => expect(screen.queryByRole("link", { name: "#1" })).not.toBeInTheDocument());
-    expect(fetchOrders).toHaveBeenLastCalledWith("tok", "paid");
+    expect(fetchOrders).toHaveBeenLastCalledWith("paid");
 
     await user.selectOptions(screen.getByLabelText("Status"), "");
     expect(await screen.findByRole("link", { name: "#1" })).toBeInTheDocument();
-    expect(fetchOrders).toHaveBeenLastCalledWith("tok", undefined);
+    expect(fetchOrders).toHaveBeenLastCalledWith(undefined);
   });
 
-  it("clears a rejected token and redirects to /login", async () => {
-    setToken("expired");
+  it("sends a rejected session to /login", async () => {
     vi.mocked(fetchOrders).mockRejectedValue(new ApiError(401, "Not authenticated"));
 
     render(<OrdersPage />);
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 
   it("shows an error when the backend cannot be reached", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders).mockRejectedValue(new TypeError("Failed to fetch"));
 
     render(<OrdersPage />);
@@ -99,7 +94,6 @@ describe("OrdersPage", () => {
   });
 
   it("shows the backend's message when filtering fails", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders)
       .mockResolvedValueOnce([order(1, "pending")])
       .mockRejectedValueOnce(new ApiError(500, "Database unavailable"));
@@ -112,7 +106,6 @@ describe("OrdersPage", () => {
   });
 
   it("signs the user out when filtering is rejected with 401", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders)
       .mockResolvedValueOnce([order(1, "pending")])
       .mockRejectedValueOnce(new ApiError(401, "Not authenticated"));
@@ -122,11 +115,9 @@ describe("OrdersPage", () => {
     await userEvent.setup().selectOptions(screen.getByLabelText("Status"), "paid");
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(getToken()).toBeNull();
   });
 
   it("disables the status filter while a request is in flight so responses cannot race", async () => {
-    setToken("tok");
     let resolve: (orders: Order[]) => void = () => {};
     vi.mocked(fetchOrders)
       .mockResolvedValueOnce([order(2, "paid"), order(1, "pending")])
@@ -142,7 +133,6 @@ describe("OrdersPage", () => {
   });
 
   it("puts the previous status back when filtering fails", async () => {
-    setToken("tok");
     vi.mocked(fetchOrders)
       .mockResolvedValueOnce([order(1, "pending")])
       .mockRejectedValueOnce(new ApiError(500, "Database unavailable"));

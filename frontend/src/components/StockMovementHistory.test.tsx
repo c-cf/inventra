@@ -26,7 +26,7 @@ const restock: StockMovement = {
 const onUnauthorized = vi.fn();
 
 function renderHistory() {
-  render(<StockMovementHistory token="tok" products={products} onUnauthorized={onUnauthorized} />);
+  render(<StockMovementHistory products={products} onUnauthorized={onUnauthorized} />);
   return userEvent.setup();
 }
 
@@ -110,14 +110,14 @@ describe("StockMovementHistory", () => {
   it("hides the history of a product that is no longer in the list", async () => {
     vi.mocked(fetchStockMovements).mockResolvedValue([restock]);
     const { rerender } = render(
-      <StockMovementHistory token="tok" products={products} onUnauthorized={onUnauthorized} />,
+      <StockMovementHistory products={products} onUnauthorized={onUnauthorized} />,
     );
     const user = userEvent.setup();
 
     await view(user, "1");
     await screen.findByText("restock");
     rerender(
-      <StockMovementHistory token="tok" products={[products[1]]} onUnauthorized={onUnauthorized} />,
+      <StockMovementHistory products={[products[1]]} onUnauthorized={onUnauthorized} />,
     );
 
     expect(screen.queryByText("restock")).not.toBeInTheDocument();
@@ -130,7 +130,6 @@ describe("StockMovementHistory", () => {
     function historyWith(refreshKey: number) {
       return (
         <StockMovementHistory
-          token="tok"
           products={products}
           onUnauthorized={onUnauthorized}
           refreshKey={refreshKey}

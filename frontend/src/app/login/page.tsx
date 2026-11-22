@@ -4,13 +4,23 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { LoginForm } from "@/components/LoginForm";
-import { getToken, setToken } from "@/lib/auth";
+import { fetchMe } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (getToken()) router.replace("/products");
+    // Already signed in (the session cookie is valid)? Skip the form.
+    let cancelled = false;
+    fetchMe().then(
+      () => {
+        if (!cancelled) router.replace("/products");
+      },
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   return (
@@ -21,10 +31,7 @@ export default function LoginPage() {
           <p className="text-sm text-zinc-500">Sign in to manage orders and inventory.</p>
         </div>
         <LoginForm
-          onSuccess={(token) => {
-            setToken(token);
-            router.push("/products");
-          }}
+          onSuccess={() => router.push("/products")}
         />
       </div>
     </main>

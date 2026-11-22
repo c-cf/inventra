@@ -12,7 +12,6 @@ import {
   fetchStockMovements,
   type Product,
 } from "@/lib/api";
-import { setToken } from "@/lib/auth";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
@@ -82,7 +81,6 @@ beforeEach(() => {
   vi.mocked(createProduct).mockReset();
   vi.mocked(adjustStock).mockReset();
   vi.mocked(fetchStockMovements).mockReset();
-  setToken("tok");
 });
 
 describe("ProductsPage with an active low-stock filter", () => {
@@ -195,7 +193,6 @@ describe("ProductsPage low-stock filter controls", () => {
     await user.click(screen.getByRole("button", { name: "Filter" }));
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
-    expect(window.localStorage.length).toBe(0);
   });
 
   it("reloads every product and empties the threshold on clear", async () => {
@@ -208,7 +205,7 @@ describe("ProductsPage low-stock filter controls", () => {
     await user.click(screen.getByRole("button", { name: "Clear Filter" }));
 
     expect(await screen.findByText("2 items")).toBeInTheDocument();
-    expect(fetchProducts).toHaveBeenLastCalledWith("tok", {});
+    expect(fetchProducts).toHaveBeenLastCalledWith({});
     expect(screen.getByLabelText("Low stock threshold")).toHaveValue(null);
   });
 
