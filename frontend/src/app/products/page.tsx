@@ -19,6 +19,11 @@ import {
 
 import { clearToken, getToken } from "@/lib/auth";
 
+/** Whether a product belongs in the list while a low-stock filter is active. */
+function matchesFilter(product: Product, below: number | null): boolean {
+  return below === null || product.quantity < below;
+}
+
 type PageState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -39,6 +44,7 @@ export default function ProductsPage() {
   const [threshold, setThreshold] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
+  const [activeBelow, setActiveBelow] = useState<number | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -97,6 +103,8 @@ export default function ProductsPage() {
   }
 
   function handleCreated(product: Product) {
+    if (!matchesFilter(product, activeBelow)) return;
+
     setState((prev) =>
       prev.status === "ready"
         ? {
@@ -145,6 +153,7 @@ export default function ProductsPage() {
           ? { ...prev, products }
           : prev,
       );
+      setActiveBelow(value);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         handleUnauthorized();
@@ -175,6 +184,7 @@ export default function ProductsPage() {
           ? { ...prev, products }
           : prev,
       );
+      setActiveBelow(null);
 
       setThreshold("");
     } catch (error) {
