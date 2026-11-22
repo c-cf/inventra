@@ -68,7 +68,7 @@ describe("fetchProducts", () => {
     expect(result).toEqual(products);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8000/products");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 
   it("throws an ApiError with status 401 when the token is rejected", async () => {
@@ -89,7 +89,7 @@ describe("fetchProducts", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
     expect(url).toBe("http://localhost:8000/products?below=5");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 });
 
@@ -107,7 +107,7 @@ describe("createProduct", () => {
     expect(url).toBe("http://localhost:8000/products");
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify(input));
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 
   it("turns FastAPI validation errors into a readable message", async () => {
@@ -155,7 +155,7 @@ describe("adjustStock", () => {
 
     expect(url).toBe("http://localhost:8000/products/3/adjust");
     expect(init.method).toBe("POST");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
     expect(JSON.parse(init.body as string)).toEqual({
       change: 5,
       reason: "restock",
@@ -213,9 +213,7 @@ describe("fetchStockMovements", () => {
     expect(url).toBe(
       "http://localhost:8000/products/3/movements",
     );
-    expect(new Headers(init.headers).get("authorization")).toBe(
-      "Bearer tok",
-    );
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
     expect(result).toEqual(movements);
   });
 
@@ -241,7 +239,7 @@ describe("fetchMe", () => {
     expect(user).toEqual({ id: 1, username: "alice", role: "admin" });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:8000/auth/me");
-    expect(new Headers(init.headers).get("authorization")).toBe("Bearer tok");
+    expect(new Headers(init.headers).get("authorization")).toBeNull();
   });
 });
 

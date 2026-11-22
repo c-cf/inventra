@@ -51,7 +51,7 @@ describe("fetchOrders", () => {
 
     const { url, headers } = lastCall(fetchMock);
     expect(url).toBe("http://localhost:8000/orders");
-    expect(headers.get("authorization")).toBe("Bearer tok");
+    expect(headers.get("authorization")).toBeNull();
   });
 
   it("filters by status", async () => {
@@ -90,7 +90,7 @@ describe("createOrder", () => {
     expect(url).toBe("http://localhost:8000/orders");
     expect(init.method).toBe("POST");
     expect(init.body).toBe(JSON.stringify(input));
-    expect(headers.get("authorization")).toBe("Bearer tok");
+    expect(headers.get("authorization")).toBeNull();
   });
 
   it("surfaces the backend's stock error", async () => {

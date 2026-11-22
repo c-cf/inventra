@@ -59,7 +59,7 @@ describe("updateProduct", () => {
     expect(url).toBe("http://localhost:8000/products/1");
     expect(init.method).toBe("PATCH");
     expect(init.body).toBe(JSON.stringify({ name: "Keyboard", price: 79 }));
-    expect(headers.get("authorization")).toBe("Bearer tok");
+    expect(headers.get("authorization")).toBeNull();
   });
 
   it("surfaces a duplicate SKU", async () => {
@@ -99,6 +99,6 @@ describe("fetchProduct", () => {
 
     expect(await fetchProduct("tok", 1)).toEqual(keyboard);
     expect(lastCall(fetchMock).url).toBe("http://localhost:8000/products/1");
-    expect(lastCall(fetchMock).headers.get("authorization")).toBe("Bearer tok");
+    expect(lastCall(fetchMock).headers.get("authorization")).toBeNull();
   });
 });

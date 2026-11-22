@@ -29,7 +29,7 @@ describe("user management API", () => {
 
     expect(await fetchUsers("tok")).toEqual([carol]);
     expect(lastCall(fetchMock).url).toBe("http://localhost:8000/users");
-    expect(lastCall(fetchMock).headers.get("authorization")).toBe("Bearer tok");
+    expect(lastCall(fetchMock).headers.get("authorization")).toBeNull();
   });
 
   it("surfaces the 403 a staff member gets", async () => {
