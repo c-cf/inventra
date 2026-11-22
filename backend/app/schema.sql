@@ -48,3 +48,10 @@ CREATE TABLE IF NOT EXISTS order_items (
     unit_price REAL    NOT NULL CHECK (unit_price >= 0),
     UNIQUE (order_id, product_id)
 );
+
+-- SKUs and usernames are identifiers people type: "kb-001" and "KB-001" (or
+-- "carol" and "CAROL") must not both exist. The column UNIQUE constraints above
+-- compare case-sensitively, so add case-insensitive ones. (On an existing
+-- database that already holds such duplicates, this fails until they are fixed.)
+CREATE UNIQUE INDEX IF NOT EXISTS products_sku_nocase ON products (sku COLLATE NOCASE);
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_nocase ON users (username COLLATE NOCASE);
