@@ -174,9 +174,7 @@ export function createOrder(input: OrderInput): Promise<Order> {
   return request<Order>("/orders", { method: "POST", body: input });
 }
 
-export function updateOrderStatus(orderId: number,
-  status: OrderStatus,
-): Promise<Order> {
+export function updateOrderStatus(orderId: number, status: OrderStatus): Promise<Order> {
   return request<Order>(`/orders/${orderId}`, { method: "PATCH", body: { status } });
 }
 
