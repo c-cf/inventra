@@ -49,7 +49,7 @@ test("an order with two lines takes stock and moves from pending to shipped", as
 
   await page.goto("/products");
   await expect(quantityCell(page, kb)).toHaveText("8");
-  await expect(quantityCell(page, ms)).toHaveText(/^4/);
+  await expect(quantityCell(page, ms)).toHaveText("4");
 });
 
 test("cancelling an order puts its stock back", async ({ page }) => {
@@ -59,6 +59,10 @@ test("cancelling an order puts its stock back", async ({ page }) => {
   await placeOrder(page, `E2E Cancelling ${uniqueSku("C")}`, [
     { label: `E2E Cancel Widget (${sku}) · 6 in stock`, quantity: "4" },
   ]);
+  const orderUrl = page.url();
+  await page.goto("/products");
+  await expect(quantityCell(page, sku)).toHaveText("2");
+  await page.goto(orderUrl);
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: "Cancel order" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("cancelled");

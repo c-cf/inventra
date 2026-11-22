@@ -28,8 +28,10 @@ test("an admin adds a staff member who can then sign in and change their passwor
   // Role locators skip the hidden pages Next keeps mounted (e.g. a cached /login).
   await page.getByRole("textbox", { name: "Username" }).fill(username);
   await page.getByLabel("Password", { exact: true }).filter({ visible: true }).fill("first-password");
+  await page.getByRole("combobox", { name: "Role", exact: true }).selectOption("staff");
   await page.getByRole("button", { name: "Create user" }).click();
   await expect(page.getByRole("cell", { name: username })).toBeVisible();
+  await expect(page.getByLabel(`Role for ${username}`)).toHaveValue("staff");
   await page.getByRole("button", { name: "Sign out" }).click();
 
   await signIn(page, { username, password: "first-password" });

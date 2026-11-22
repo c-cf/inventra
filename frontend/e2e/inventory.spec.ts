@@ -43,12 +43,14 @@ test("search and the low-stock filter narrow the list together", async ({ page }
 
   await page.getByLabel("Search products").fill(tag.toLowerCase());
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  // Wait for the filtered list: a seeded product that doesn't match must disappear.
+  await expect(page.getByRole("link", { name: "KB-001" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: `${tag}-A` })).toBeVisible();
   await expect(page.getByRole("link", { name: `${tag}-B` })).toBeVisible();
-  await expect(page.getByText("2 items")).toBeVisible();
+  await expect(page.getByText("2 items", { exact: true })).toBeVisible();
 
   await page.getByLabel("Low stock threshold").fill("5");
   await page.getByRole("button", { name: "Filter", exact: true }).click();
-  await expect(page.getByText("1 items")).toBeVisible();
+  await expect(page.getByText("1 items", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: `${tag}-B` })).toHaveCount(0);
 });

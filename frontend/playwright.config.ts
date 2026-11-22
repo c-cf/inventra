@@ -12,10 +12,13 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const API_URL = "http://localhost:8000";
 const APP_URL = "http://localhost:3000";
-const DB_PATH = process.env.E2E_DB_PATH ?? path.join(os.tmpdir(), `inventra-e2e-${process.pid}.db`);
+// Unique per run (and exported for global-teardown.ts, which deletes it afterwards).
+process.env.E2E_DB_PATH ??= path.join(os.tmpdir(), `inventra-e2e-${process.pid}-${Date.now()}.db`);
+const DB_PATH = process.env.E2E_DB_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
+  globalTeardown: "./e2e/global-teardown.ts",
   // One worker: every test shares the seeded database, so run them one at a time.
   workers: 1,
   fullyParallel: false,
@@ -43,7 +46,7 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "npm run build && npm run start",
+      command: "npm run build && npm run start -- --port 3000",
       url: `${APP_URL}/login`,
       env: { NEXT_PUBLIC_API_URL: API_URL },
       reuseExistingServer: false,
