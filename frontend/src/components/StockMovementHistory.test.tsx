@@ -20,7 +20,7 @@ const restock: StockMovement = {
   product_id: 1,
   change: 5,
   reason: "restock",
-  created_at: "2026-11-22 10:00:00",
+  created_at: "2026-11-22T10:00:00Z",
 };
 
 const onUnauthorized = vi.fn();
@@ -77,6 +77,15 @@ describe("StockMovementHistory", () => {
 
     await vi.waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows when each movement happened in local time", async () => {
+    vi.mocked(fetchStockMovements).mockResolvedValue([restock]);
+    const user = renderHistory();
+
+    await view(user, "1");
+
+    expect(await screen.findByRole("cell", { name: "2026-11-22 18:00" })).toBeInTheDocument();
   });
 
   it("clears the shown history when another product is selected", async () => {
