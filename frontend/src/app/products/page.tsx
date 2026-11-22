@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 
 import { AppHeader } from "@/components/AppHeader";
 import { PageStatus } from "@/components/PageStatus";
@@ -9,12 +9,26 @@ import { ProductForm } from "@/components/ProductForm";
 import { ProductTable } from "@/components/ProductTable";
 import { StockAdjustmentForm } from "@/components/StockAdjustmentForm";
 import { StockMovementHistory } from "@/components/StockMovementHistory";
-import { ApiError, fetchProducts, type Product } from "@/lib/api";
+import { ApiError, fetchProducts, type Product, type ProductQuery } from "@/lib/api";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
-/** Whether a product belongs in the list while a low-stock filter is active. */
-function matchesFilter(product: Product, below: number | null): boolean {
-  return below === null || product.quantity < below;
+type Filters = { below: number | null; q: string };
+
+const NO_FILTERS: Filters = { below: null, q: "" };
+
+/** Mirrors the API: quantity under the threshold and name or SKU containing q. */
+function matchesFilter(product: Product, { below, q }: Filters): boolean {
+  if (below !== null && product.quantity >= below) return false;
+  const needle = q.toLowerCase();
+  return (
+    needle === "" ||
+    product.name.toLowerCase().includes(needle) ||
+    product.sku.toLowerCase().includes(needle)
+  );
+}
+
+function toQuery({ below, q }: Filters): ProductQuery {
+  return { ...(below !== null && { below }), ...(q !== "" && { q }) };
 }
 
 export default function ProductsPage() {
@@ -25,13 +39,16 @@ export default function ProductsPage() {
   } = useAuthedLoad((token) => fetchProducts(token));
 
   const [threshold, setThreshold] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
-  const [activeBelow, setActiveBelow] = useState<number | null>(null);
+  const [active, setActive] = useState<Filters>(NO_FILTERS);
+  // Create and adjust responses can land after the filters changed; read the latest ones.
+  const activeRef = useRef<Filters>(NO_FILTERS);
   const [movementsVersion, setMovementsVersion] = useState(0);
 
   function handleCreated(product: Product) {
-    if (!matchesFilter(product, activeBelow)) return;
+    if (!matchesFilter(product, activeRef.current)) return;
 
     setProducts((products) => [...products, product]);
   }
@@ -41,13 +58,42 @@ export default function ProductsPage() {
     setProducts((products) =>
       products
         .map((item) => (item.id === product.id ? product : item))
-        .filter((item) => matchesFilter(item, activeBelow)),
+        .filter((item) => matchesFilter(item, activeRef.current)),
     );
   }
 
-  async function handleFilter() {
-    if (state.status !== "ready") return;
+  /** Reload the list for `next`; true when it worked. */
+  async function applyFilters(next: Filters): Promise<boolean> {
+    if (state.status !== "ready") return false;
 
+    setFilterError("");
+    setFilterLoading(true);
+
+    try {
+      const products = await fetchProducts(state.token, toQuery(next));
+
+      setProducts(() => products);
+      activeRef.current = next;
+      setActive(next);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        handleUnauthorized();
+        return false;
+      }
+
+      setFilterError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load products.",
+      );
+      return false;
+    } finally {
+      setFilterLoading(false);
+    }
+  }
+
+  async function handleFilter() {
     const value = Number(threshold);
 
     if (
@@ -59,57 +105,20 @@ export default function ProductsPage() {
       return;
     }
 
-    setFilterError("");
-    setFilterLoading(true);
-
-    try {
-      const products = await fetchProducts(state.token, value);
-
-      setProducts(() => products);
-      setActiveBelow(value);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        handleUnauthorized();
-        return;
-      }
-
-      setFilterError(
-        error instanceof Error
-          ? error.message
-          : "Failed to filter products.",
-      );
-    } finally {
-      setFilterLoading(false);
-    }
+    await applyFilters({ ...active, below: value });
   }
 
   async function handleClearFilter() {
-    if (state.status !== "ready") return;
+    if (await applyFilters({ ...active, below: null })) setThreshold("");
+  }
 
-    setFilterError("");
-    setFilterLoading(true);
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await applyFilters({ ...active, q: searchText.trim() });
+  }
 
-    try {
-      const products = await fetchProducts(state.token);
-
-      setProducts(() => products);
-      setActiveBelow(null);
-
-      setThreshold("");
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        handleUnauthorized();
-        return;
-      }
-
-      setFilterError(
-        error instanceof Error
-          ? error.message
-          : "Failed to load products.",
-      );
-    } finally {
-      setFilterLoading(false);
-    }
+  async function handleClearSearch() {
+    if (await applyFilters({ ...active, q: "" })) setSearchText("");
   }
 
   if (state.status === "loading") return <PageStatus message="Loading products..." />;
@@ -134,11 +143,44 @@ export default function ProductsPage() {
           onUnauthorized={handleUnauthorized}
         />
 
-        {/* Low Stock Filter */}
+        {/* Search and Low Stock Filter */}
         <section className="space-y-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
           <h2 className="text-lg font-semibold">
-            Low Stock Filter
+            Find Products
           </h2>
+
+          <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-3">
+            <div className="flex-1">
+              <label htmlFor="product-search" className="mb-1 block text-sm font-medium">
+                Search products
+              </label>
+              <input
+                id="product-search"
+                type="search"
+                placeholder="Name or SKU"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={filterLoading}
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              Search
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              disabled={filterLoading}
+              className="rounded-md border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+            >
+              Clear search
+            </button>
+          </form>
 
           <div className="flex flex-wrap items-end gap-3">
             <div>

@@ -10,15 +10,12 @@ import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { PageStatus } from "@/components/PageStatus";
 import { ApiError, fetchOrder } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
+import { parsePositiveId } from "@/lib/routeParams";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
-
-function parseOrderId(raw: string | undefined): number | null {
-  return raw !== undefined && /^[1-9]\d*$/.test(raw) ? Number(raw) : null;
-}
 
 export function OrderDetail() {
   const params = useParams<{ id: string }>();
-  const orderId = parseOrderId(params.id);
+  const orderId = parsePositiveId(params.id);
   const { state, setData, signOut } = useAuthedLoad((token) =>
     orderId === null
       ? Promise.reject(new ApiError(404, "Order not found"))

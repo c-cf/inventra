@@ -84,7 +84,7 @@ describe("fetchProducts", () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchProducts("tok", 5);
+    await fetchProducts("tok", { below: 5 });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
 
