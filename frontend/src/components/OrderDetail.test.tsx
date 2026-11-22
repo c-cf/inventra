@@ -124,4 +124,21 @@ describe("OrderDetail", () => {
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
     expect(getToken()).toBeNull();
   });
+
+  it("signs out an expired session even when the id is not a number", async () => {
+    setToken("expired");
+    params.current = { id: "abc" };
+    // The session check takes a round trip; the malformed id is rejected at once.
+    vi.mocked(fetchMe).mockImplementation(
+      () =>
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new ApiError(401, "Not authenticated")), 10),
+        ),
+    );
+
+    render(<OrderDetail />);
+
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    expect(getToken()).toBeNull();
+  });
 });
