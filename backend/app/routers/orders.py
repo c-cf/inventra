@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.deps import CurrentUser, DbConn
 from app.schemas.order import OrderCreate, OrderOut
@@ -9,10 +9,16 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
 def create_order(payload: OrderCreate, conn: DbConn, current_user: CurrentUser) -> OrderOut:
-    order = order_service.place_order(
-        conn,
-        customer_name=payload.customer_name,
-        items=[(item.product_id, item.quantity) for item in payload.items],
-        created_by=current_user.id,
-    )
+    try:
+        order = order_service.place_order(
+            conn,
+            customer_name=payload.customer_name,
+            items=[(item.product_id, item.quantity) for item in payload.items],
+            created_by=current_user.id,
+        )
+    except order_service.InsufficientStockError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Insufficient stock for {exc.sku}",
+        ) from None
     return OrderOut.model_validate(order)

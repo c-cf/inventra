@@ -129,3 +129,12 @@ def get_low_stock_products(
     ).fetchall()
 
     return [_to_product(row) for row in rows]
+
+
+def remove_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+    """Take quantity out of stock if enough is left. Does not commit."""
+    cursor = conn.execute(
+        "UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?",
+        (quantity, product_id, quantity),
+    )
+    return cursor.rowcount == 1
