@@ -140,4 +140,19 @@ describe("ProductsPage search with a slow create", () => {
 
     expect(within(screen.getByRole("table")).queryByText("USB Hub")).not.toBeInTheDocument();
   });
+
+  it("matches the search regardless of letter case", async () => {
+    const user = await renderPage();
+    vi.mocked(fetchProducts).mockResolvedValueOnce([keyboard]);
+    vi.mocked(createProduct).mockResolvedValue(product(3, "kb-009", "Travel KEYBOARD"));
+
+    await search(user, "Keyboard");
+    await waitFor(() => expect(screen.queryByRole("link", { name: "MS-001" })).not.toBeInTheDocument());
+    await user.type(screen.getByLabelText(/^sku$/i), "kb-009");
+    await user.type(screen.getByLabelText(/^name$/i), "Travel KEYBOARD");
+    await user.type(screen.getByLabelText(/^price$/i), "10");
+    await user.click(screen.getByRole("button", { name: /add product/i }));
+
+    expect(await within(screen.getByRole("table")).findByText("Travel KEYBOARD")).toBeInTheDocument();
+  });
 });
