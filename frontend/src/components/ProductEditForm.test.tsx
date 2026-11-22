@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -130,5 +130,27 @@ describe("ProductEditForm", () => {
     expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
     resolve({ ...keyboard, name: "Keyboard" });
     await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled());
+  });
+
+  it("treats a price typed as 89.00 as unchanged", async () => {
+    const user = renderForm();
+
+    // userEvent.type collapses "89.00" to "89" in jsdom, so set the raw value directly.
+    fireEvent.change(screen.getByLabelText(/price/i), { target: { value: "89.00" } });
+    expect(screen.getByLabelText(/price/i)).toHaveDisplayValue("89.00");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(updateProduct).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("No changes to save.");
+  });
+
+  it("trims a changed SKU before sending it", async () => {
+    vi.mocked(updateProduct).mockResolvedValue({ ...keyboard, sku: "KB-002" });
+    const user = renderForm();
+
+    await replace(user, /sku/i, "  KB-002  ");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(updateProduct).toHaveBeenCalledWith("tok", 1, { sku: "KB-002" }));
   });
 });
