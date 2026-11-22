@@ -48,3 +48,8 @@ def get_by_username(conn: sqlite3.Connection, username: str) -> User | None:
 def list_all(conn: sqlite3.Connection) -> list[User]:
     rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
     return [_to_user(row) for row in rows]
+
+
+def update_password_hash(conn: sqlite3.Connection, user_id: int, password_hash: str) -> None:
+    conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+    conn.commit()

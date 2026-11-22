@@ -51,3 +51,13 @@ class UserCreate(BaseModel):
     @classmethod
     def strong_enough(cls, value: str) -> str:
         return check_password_strength(value)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def strong_enough(cls, value: str) -> str:
+        return check_password_strength(value)
