@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { logout, type User } from "@/lib/api";
 
@@ -11,12 +12,16 @@ type AppHeaderProps = {
 
 export function AppHeader({ user }: AppHeaderProps) {
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function signOut() {
+    setSignOutError(null);
     try {
-      await logout(); // the API clears the httpOnly session cookie
+      await logout(); // only the API can clear the httpOnly session cookie
     } catch {
-      // Offline or already signed out: the login page still works.
+      // Leaving now would look like a sign-out while the session is still valid.
+      setSignOutError("Could not sign out. Check your connection and try again.");
+      return;
     }
     router.push("/login");
   }
@@ -70,6 +75,11 @@ export function AppHeader({ user }: AppHeaderProps) {
           </button>
         </div>
       </div>
+      {signOutError && (
+        <p role="alert" className="mx-auto max-w-5xl px-6 pb-3 text-sm text-red-600">
+          {signOutError}
+        </p>
+      )}
     </header>
   );
 }

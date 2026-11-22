@@ -5,7 +5,8 @@ import { type FormEvent, useState } from "react";
 import { ApiError, login } from "@/lib/api";
 
 type LoginFormProps = {
-  onSuccess: (token: string) => void;
+  /** The API has set the httpOnly session cookie; the token never reaches page code. */
+  onSuccess: () => void;
 };
 
 const inputClass =
@@ -24,8 +25,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setPending(true);
     setError(null);
     try {
-      const { access_token } = await login(username, password);
-      onSuccess(access_token);
+      await login(username, password);
+      onSuccess();
     } catch (err) {
       setError(
         err instanceof ApiError
