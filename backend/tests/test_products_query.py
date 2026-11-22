@@ -176,7 +176,7 @@ HUGE = 10**20  # larger than SQLite's 64-bit INTEGER
         ("post", f"/products/{HUGE}/adjust", {"change": 1, "reason": "x"}),
         ("get", f"/products/{HUGE}/movements", None),
         ("get", "/products", {"below": HUGE}),
-        ("get", "/products", {"offset": HUGE}),
+        ("get", "/products", {"offset": HUGE, "limit": 1}),
     ],
 )
 def test_product_endpoints_reject_out_of_range_integers(client, auth_headers, method, path, body):
@@ -237,3 +237,16 @@ def test_offset_without_limit_skips_the_first_products(client, auth_headers, cat
 
     assert skus(response) == ["KB-002", "HB-001"]
     assert response.headers["X-Total-Count"] == "4"
+
+
+def test_whitespace_only_search_returns_everything(client, auth_headers, catalogue):
+    response = client.get("/products", params={"q": "   "}, headers=auth_headers)
+
+    assert skus(response) == [p["sku"] for p in CATALOGUE]
+
+
+def test_total_count_reflects_the_low_stock_filter(client, auth_headers, catalogue):
+    response = client.get("/products", params={"below": 3, "limit": 1}, headers=auth_headers)
+
+    assert skus(response) == ["MS-001"]
+    assert response.headers["X-Total-Count"] == "3"
