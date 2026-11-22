@@ -26,3 +26,25 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id)
 );
+
+CREATE TABLE IF NOT EXISTS orders (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT    NOT NULL,
+    status        TEXT    NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'paid', 'shipped', 'cancelled')),
+    created_by    INTEGER NOT NULL REFERENCES users(id),
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- sku, name and unit_price are copied from the product when the order is placed,
+-- so later product edits do not rewrite past orders.
+CREATE TABLE IF NOT EXISTS order_items (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    sku        TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    quantity   INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price REAL    NOT NULL CHECK (unit_price >= 0),
+    UNIQUE (order_id, product_id)
+);

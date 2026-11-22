@@ -91,14 +91,7 @@ def adjust_stock(
             return None
         raise InsufficientStockError()
 
-    conn.execute(
-        """
-        INSERT INTO stock_movements (product_id, change, reason)
-        VALUES (?, ?, ?)
-        """,
-        (product_id, change, reason),
-    )
-
+    record_movement(conn, product_id, change, reason)
     conn.commit()
     return get_by_id(conn, product_id)
 
@@ -173,3 +166,25 @@ def find(
 def count(conn: sqlite3.Connection, *, q: str | None = None, below: int | None = None) -> int:
     where, params = _filters(q, below)
     return conn.execute(f"SELECT COUNT(*) FROM products {where}", params).fetchone()[0]
+
+
+def remove_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
+    """Take quantity out of stock if enough is left. Does not commit."""
+    cursor = conn.execute(
+        "UPDATE products SET quantity = quantity - ? WHERE id = ? AND quantity >= ?",
+        (quantity, product_id, quantity),
+    )
+    return cursor.rowcount == 1
+
+
+def record_movement(conn: sqlite3.Connection, product_id: int, change: int, reason: str) -> None:
+    """Append a row to the stock audit trail. Does not commit."""
+    conn.execute(
+        "INSERT INTO stock_movements (product_id, change, reason) VALUES (?, ?, ?)",
+        (product_id, change, reason),
+    )
+
+
+def add_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> None:
+    """Put quantity back into stock. Does not commit."""
+    conn.execute("UPDATE products SET quantity = quantity + ? WHERE id = ?", (quantity, product_id))
