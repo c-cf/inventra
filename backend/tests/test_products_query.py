@@ -50,3 +50,30 @@ def test_search_combines_with_the_low_stock_filter(client, auth_headers, catalog
     response = client.get("/products", params={"q": "keyboard", "below": 5}, headers=auth_headers)
 
     assert skus(response) == ["KB-002"]
+
+
+def test_paginate_products_with_limit_and_offset(client, auth_headers, catalogue):
+    first = client.get("/products", params={"limit": 2}, headers=auth_headers)
+    second = client.get("/products", params={"limit": 2, "offset": 2}, headers=auth_headers)
+
+    assert skus(first) == ["KB-001", "MS-001"]
+    assert skus(second) == ["KB-002", "HB-001"]
+    assert first.headers["X-Total-Count"] == "4"
+
+
+def test_total_count_reflects_the_filters(client, auth_headers, catalogue):
+    response = client.get("/products", params={"q": "keyboard", "limit": 1}, headers=auth_headers)
+
+    assert skus(response) == ["KB-001"]
+    assert response.headers["X-Total-Count"] == "2"
+
+
+@pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 101}, {"offset": -1}])
+def test_pagination_validates_its_parameters(client, auth_headers, params):
+    assert client.get("/products", params=params, headers=auth_headers).status_code == 422
+
+
+def test_browsers_may_read_the_total_count_header(client):
+    response = client.get("/health", headers={"Origin": "http://localhost:3000"})
+
+    assert "x-total-count" in response.headers["access-control-expose-headers"].lower()
