@@ -51,8 +51,7 @@ def get_by_id(conn: sqlite3.Connection, product_id: int) -> Product | None:
 
 
 def list_all(conn: sqlite3.Connection) -> list[Product]:
-    rows = conn.execute("SELECT * FROM products ORDER BY id").fetchall()
-    return [_to_product(row) for row in rows]
+    return find(conn)
 
 
 def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | None:
@@ -125,23 +124,6 @@ def get_stock_movements(conn: sqlite3.Connection, product_id: int) -> list[Stock
         (product_id,),
     ).fetchall()
     return [_to_movement(row) for row in rows]
-
-
-def get_low_stock_products(
-    conn: sqlite3.Connection,
-    below: int,
-) -> list[Product]:
-    rows = conn.execute(
-        """
-        SELECT *
-        FROM products
-        WHERE quantity < ?
-        ORDER BY id ASC
-        """,
-        (below,),
-    ).fetchall()
-
-    return [_to_product(row) for row in rows]
 
 
 _LIKE_ESCAPE = "!"
