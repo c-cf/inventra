@@ -6,6 +6,8 @@ import jwt
 from app.config import get_settings
 
 ALGORITHM = "HS256"
+# httpOnly cookie that carries the access token for browser sessions.
+SESSION_COOKIE = "inventra_session"
 
 
 class TokenError(Exception):

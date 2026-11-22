@@ -3,13 +3,13 @@
 import sqlite3
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.db import get_db
 from app.models import User
 from app.repositories import users
-from app.security import TokenError, decode_access_token
+from app.security import SESSION_COOKIE, TokenError, decode_access_token
 
 DbConn = Annotated[sqlite3.Connection, Depends(get_db)]
 
@@ -25,11 +25,13 @@ def _unauthorized() -> HTTPException:
     )
 
 
-def get_current_user(conn: DbConn, credentials: BearerCredentials) -> User:
-    if credentials is None:
+def get_current_user(conn: DbConn, credentials: BearerCredentials, request: Request) -> User:
+    """Authenticate with a bearer token (API clients) or the session cookie (browsers)."""
+    token = credentials.credentials if credentials else request.cookies.get(SESSION_COOKIE)
+    if token is None:
         raise _unauthorized()
     try:
-        user_id = int(decode_access_token(credentials.credentials))
+        user_id = int(decode_access_token(token))
     except (TokenError, ValueError):
         raise _unauthorized() from None
     user = users.get_by_id(conn, user_id)

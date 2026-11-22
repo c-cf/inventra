@@ -1,16 +1,19 @@
 from fastapi import APIRouter, HTTPException, Request, Response, status
 
+from app.config import get_settings
 from app.deps import CurrentUser, DbConn
 from app.repositories import users
 from app.schemas.auth import LoginRequest, PasswordChange, TokenResponse, UserOut
-from app.security import create_access_token, hash_password, verify_password
+from app.security import SESSION_COOKIE, create_access_token, hash_password, verify_password
 from app.services import auth as auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, conn: DbConn, request: Request) -> TokenResponse:
+def login(
+    payload: LoginRequest, conn: DbConn, request: Request, response: Response
+) -> TokenResponse:
     throttle = request.app.state.login_throttle
     key = (request.client.host if request.client else "unknown", payload.username.lower())
     retry_after = throttle.begin(key)
@@ -27,7 +30,18 @@ def login(payload: LoginRequest, conn: DbConn, request: Request) -> TokenRespons
             detail="Invalid username or password",
         )
     throttle.record_success(key)
-    return TokenResponse(access_token=create_access_token(str(user.id)))
+    token = create_access_token(str(user.id))
+    # Browsers keep the token in an httpOnly cookie so page scripts never see it;
+    # the body still carries it for API clients that send a bearer header.
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=get_settings().token_ttl_minutes * 60,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
+    return TokenResponse(access_token=token)
 
 
 @router.get("/me", response_model=UserOut)
