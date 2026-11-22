@@ -156,3 +156,11 @@ def test_update_product_requires_auth(client):
     response = client.patch("/products/1", json={"name": "Anything"})
 
     assert response.status_code == 401
+
+
+def test_update_product_rejects_null_name(client, auth_headers):
+    created = client.post("/products", json=PAYLOAD, headers=auth_headers).json()
+
+    response = client.patch(f"/products/{created['id']}", json={"name": None}, headers=auth_headers)
+
+    assert response.status_code == 422
