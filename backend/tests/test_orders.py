@@ -80,3 +80,21 @@ def test_create_order_decrements_stock(client, auth_headers, make_product):
 
     assert stock_of(client, auth_headers, keyboard["id"]) == 7
     assert stock_of(client, auth_headers, mouse["id"]) == 0
+
+
+def count_rows(db, table: str) -> int:
+    return db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+
+
+def test_insufficient_stock_rejects_the_whole_order(client, auth_headers, db, make_product):
+    keyboard = make_product("KB-001", quantity=10)
+    mouse = make_product("MS-001", quantity=1)
+
+    response = place(client, auth_headers, (keyboard["id"], 2), (mouse["id"], 2))
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Insufficient stock for MS-001"
+    assert stock_of(client, auth_headers, keyboard["id"]) == 10
+    assert stock_of(client, auth_headers, mouse["id"]) == 1
+    assert count_rows(db, "orders") == 0
+    assert count_rows(db, "order_items") == 0
