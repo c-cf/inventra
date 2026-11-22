@@ -130,7 +130,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       # playwright.config.ts starts the seeded API and the production UI build.
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --fail-on-flaky-tests
       - name: Upload the Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
