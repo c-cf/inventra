@@ -103,4 +103,60 @@ describe("OrderForm", () => {
       expect(createOrder).not.toHaveBeenCalled();
     });
   });
+
+  describe("with several lines", () => {
+    it("adds lines, totals them and sends every item", async () => {
+      vi.mocked(createOrder).mockResolvedValue(created);
+      const user = renderForm();
+
+      await user.type(screen.getByLabelText("Customer"), "ACME Corp");
+      await fillLine(user, 1, "1", "2");
+      await user.click(screen.getByRole("button", { name: "Add line" }));
+      await fillLine(user, 2, "2", "3");
+
+      expect(screen.getByText("Total: $254.50")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Place order" }));
+
+      await waitFor(() => expect(createOrder).toHaveBeenCalledOnce());
+      expect(createOrder).toHaveBeenCalledWith("tok", {
+        customer_name: "ACME Corp",
+        items: [
+          { product_id: 1, quantity: 2 },
+          { product_id: 2, quantity: 3 },
+        ],
+      });
+    });
+
+    it("removes a line", async () => {
+      const user = renderForm();
+
+      await fillLine(user, 1, "1", "2");
+      await user.click(screen.getByRole("button", { name: "Add line" }));
+      await fillLine(user, 2, "2", "1");
+      await user.click(screen.getByRole("button", { name: "Remove line 1" }));
+
+      expect(screen.queryByLabelText("Product 2")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Product 1")).toHaveValue("2");
+      expect(screen.getByText("Total: $25.50")).toBeInTheDocument();
+    });
+
+    it("does not offer to remove the only line", () => {
+      renderForm();
+
+      expect(screen.queryByRole("button", { name: /remove line/i })).not.toBeInTheDocument();
+    });
+
+    it("rejects the same product on two lines", async () => {
+      const user = renderForm();
+
+      await user.type(screen.getByLabelText("Customer"), "ACME Corp");
+      await fillLine(user, 1, "1", "1");
+      await user.click(screen.getByRole("button", { name: "Add line" }));
+      await fillLine(user, 2, "1", "1");
+      await user.click(screen.getByRole("button", { name: "Place order" }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent("KB-001 is on more than one line.");
+      expect(createOrder).not.toHaveBeenCalled();
+    });
+  });
 });
