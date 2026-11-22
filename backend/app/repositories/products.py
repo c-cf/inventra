@@ -87,14 +87,7 @@ def adjust_stock(
             return None
         raise InsufficientStockError()
 
-    conn.execute(
-        """
-        INSERT INTO stock_movements (product_id, change, reason)
-        VALUES (?, ?, ?)
-        """,
-        (product_id, change, reason),
-    )
-
+    record_movement(conn, product_id, change, reason)
     conn.commit()
     return get_by_id(conn, product_id)
 
