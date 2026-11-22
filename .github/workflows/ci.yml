@@ -22,9 +22,10 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       # Fails the job when coverage drops below fail_under in pyproject.toml.
-      - run: uv run pytest --cov --cov-report=term-missing --cov-report=html --cov-report=markdown-append:$GITHUB_STEP_SUMMARY
+      - run: echo "### Backend coverage" >> "$GITHUB_STEP_SUMMARY"
+      - run: uv run pytest --cov --cov-report=term --cov-report=html --cov-report=markdown-append:$GITHUB_STEP_SUMMARY
       - name: Upload backend coverage report
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
@@ -50,7 +51,7 @@ jobs:
       # Fails the job when coverage drops below the thresholds in vitest.config.mts.
       - run: npm run test:coverage
       - name: Add frontend coverage to the job summary
-        if: always()
+        if: ${{ !cancelled() }}
         run: |
           node -e '
             const fs = require("fs");
@@ -63,7 +64,7 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
           '
       - name: Upload frontend coverage report
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
