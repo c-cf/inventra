@@ -4,10 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppHeader } from "@/components/AppHeader";
 import { logout } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
+
+vi.mock("@/lib/hardNavigate", () => ({ hardNavigate: vi.fn() }));
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -18,6 +21,7 @@ beforeEach(() => {
   window.localStorage.clear();
   router.push.mockReset();
   vi.mocked(logout).mockReset().mockResolvedValue(undefined);
+  vi.mocked(hardNavigate).mockReset();
 });
 
 describe("AppHeader", () => {
@@ -34,7 +38,10 @@ describe("AppHeader", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
 
     expect(logout).toHaveBeenCalledOnce();
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
+    // A full page load, not router.push: it drops every page Next keeps in memory,
+    // including the previous user's forms (#24).
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("says so and stays put when the sign-out request fails", async () => {
@@ -48,7 +55,7 @@ describe("AppHeader", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not sign out. Check your connection and try again.",
     );
-    expect(router.push).not.toHaveBeenCalled();
+    expect(hardNavigate).not.toHaveBeenCalled();
   });
 
   it("links to the products and orders pages", () => {

@@ -68,4 +68,16 @@ describe("LoginForm", () => {
       expect(screen.getByRole("button", { name: /sign in/i })).not.toBeDisabled(),
     );
   });
+
+  it("clears the fields after a successful sign-in", async () => {
+    // Next keeps the login page mounted (hidden) after navigating away, so whatever is
+    // left in the form would greet the next person after a sign-out (#24).
+    loginMock.mockResolvedValue({ access_token: "tok", token_type: "bearer" });
+    render(<LoginForm onSuccess={vi.fn()} />);
+
+    await fillAndSubmit("alice", "secret123");
+
+    await waitFor(() => expect(screen.getByLabelText(/password/i)).toHaveValue(""));
+    expect(screen.getByLabelText(/username/i)).toHaveValue("");
+  });
 });
