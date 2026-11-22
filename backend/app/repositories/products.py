@@ -164,9 +164,9 @@ def find(
     """Products matching an optional name/SKU search and low-stock threshold."""
     where, params = _filters(q, below)
     sql = f"SELECT * FROM products {where} ORDER BY id"
-    if limit is not None:
+    if limit is not None or offset:
         sql += " LIMIT ? OFFSET ?"
-        params += [limit, offset]
+        params += [-1 if limit is None else limit, offset]  # SQLite: LIMIT -1 = no limit
     rows = conn.execute(sql, params).fetchall()
     return [_to_product(row) for row in rows]
 
