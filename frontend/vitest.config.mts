@@ -1,6 +1,10 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
+// Run every test in one fixed time zone (UTC+8, no daylight saving) so local-time
+// formatting is deterministic on any machine, CI included.
+process.env.TZ = "Asia/Taipei";
+
 export default defineConfig({
   plugins: [react()],
   resolve: { tsconfigPaths: true },

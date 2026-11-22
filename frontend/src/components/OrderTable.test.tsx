@@ -9,7 +9,7 @@ const order: Order = {
   customer_name: "ACME Corp",
   status: "paid",
   created_by: 1,
-  created_at: "2026-11-22 10:00:00",
+  created_at: "2026-11-22T10:00:00Z",
   items: [
     { product_id: 1, sku: "KB-001", name: "Keyboard", quantity: 2, unit_price: 89, line_total: 178 },
     { product_id: 2, sku: "MS-001", name: "Mouse", quantity: 1, unit_price: 25.5, line_total: 25.5 },
@@ -34,6 +34,6 @@ describe("OrderTable", () => {
     expect(within(row).getByText("paid")).toBeInTheDocument();
     expect(within(row).getByText("3")).toBeInTheDocument();
     expect(within(row).getByText("$203.50")).toBeInTheDocument();
-    expect(within(row).getByText("2026-11-22 10:00:00")).toBeInTheDocument();
+    expect(within(row).getByText("2026-11-22 18:00")).toBeInTheDocument(); // local (UTC+8)
   });
 });

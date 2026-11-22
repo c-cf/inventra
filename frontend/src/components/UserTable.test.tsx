@@ -10,7 +10,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   updateUserRole: vi.fn(),
 }));
 
-const alice: UserSummary = { id: 1, username: "alice", role: "admin", created_at: "2026-11-01 08:00:00" };
+const alice: UserSummary = { id: 1, username: "alice", role: "admin", created_at: "2026-11-01T08:00:00Z" };
 const bob: UserSummary = { id: 2, username: "bob", role: "staff", created_at: "2026-11-02 08:00:00" };
 const onChanged = vi.fn();
 const onUnauthorized = vi.fn();
@@ -46,6 +46,7 @@ describe("UserTable", () => {
     expect(within(rows[2]).getByText("bob")).toBeInTheDocument();
     expect(roleSelect("alice")).toHaveValue("admin");
     expect(roleSelect("bob")).toHaveValue("staff");
+    expect(within(rows[1]).getByText("2026-11-01 16:00")).toBeInTheDocument();
   });
 
   it("does not let you change your own role", () => {

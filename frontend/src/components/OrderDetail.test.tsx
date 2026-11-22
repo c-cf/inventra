@@ -25,7 +25,7 @@ const order: Order = {
   customer_name: "ACME Corp",
   status: "pending",
   created_by: 1,
-  created_at: "2026-11-22 10:00:00",
+  created_at: "2026-11-22T10:00:00Z",
   items: [
     { product_id: 1, sku: "KB-001", name: "Keyboard", quantity: 2, unit_price: 89, line_total: 178 },
     { product_id: 2, sku: "MS-001", name: "Mouse", quantity: 1, unit_price: 25.5, line_total: 25.5 },
@@ -72,6 +72,7 @@ describe("OrderDetail", () => {
     render(<OrderDetail />);
 
     expect(await screen.findByText("ACME Corp")).toBeInTheDocument();
+    expect(screen.getByText(/placed 2026-11-22 18:00/)).toBeInTheDocument();
     expect(screen.getByText("pending")).toBeInTheDocument();
     const rows = within(screen.getByRole("table")).getAllByRole("row");
     expect(within(rows[1]).getByText("KB-001")).toBeInTheDocument();

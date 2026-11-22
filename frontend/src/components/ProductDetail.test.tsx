@@ -34,7 +34,7 @@ const keyboard: Product = {
   name: "Mechanical Keyboard",
   price: 89,
   quantity: 25,
-  created_at: "2026-01-01 09:00:00",
+  created_at: "2026-01-01T09:00:00Z",
 };
 
 beforeEach(() => {
@@ -71,6 +71,7 @@ describe("ProductDetail", () => {
     expect(within(breadcrumb).getByText("KB-001")).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { name: "Mechanical Keyboard" })).toBeInTheDocument();
     expect(screen.getByText("25 in stock")).toBeInTheDocument();
+    expect(screen.getByText(/added 2026-01-01 17:00/)).toBeInTheDocument();
     expect(fetchProduct).toHaveBeenCalledWith(1);
   });
 
