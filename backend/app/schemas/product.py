@@ -15,7 +15,7 @@ class ProductUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     price: float | None = Field(default=None, ge=0)
 
-    @field_validator("name")
+    @field_validator("name", "price")
     @classmethod
     def reject_null(cls, value):
         if value is None:
