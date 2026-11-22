@@ -16,10 +16,10 @@ import { useAuthedLoad } from "@/lib/useAuthedLoad";
 export function OrderDetail() {
   const params = useParams<{ id: string }>();
   const orderId = parsePositiveId(params.id);
-  const { state, setData, signOut } = useAuthedLoad((token) =>
+  const { state, setData, signOut } = useAuthedLoad(() =>
     orderId === null
       ? Promise.reject(new ApiError(404, "Order not found"))
-      : fetchOrder(token, orderId),
+      : fetchOrder(orderId),
   );
 
   if (state.status === "loading") return <PageStatus message="Loading order..." />;
@@ -53,7 +53,6 @@ export function OrderDetail() {
             </p>
           </div>
           <OrderStatusActions
-            token={state.token}
             order={order}
             onChanged={(updated) => setData(() => updated)}
             onUnauthorized={signOut}

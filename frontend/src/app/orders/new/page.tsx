@@ -11,7 +11,7 @@ import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function NewOrderPage() {
   const router = useRouter();
-  const { state, signOut } = useAuthedLoad((token) => fetchProducts(token));
+  const { state, signOut } = useAuthedLoad(() => fetchProducts());
 
   if (state.status === "loading") return <PageStatus message="Loading products..." />;
   if (state.status === "error") return <PageStatus message={state.message} error />;
@@ -26,7 +26,6 @@ export default function NewOrderPage() {
 
         <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
           <OrderForm
-            token={state.token}
             products={state.data}
             onCreated={(order) => router.push(`/orders/${order.id}`)}
             onUnauthorized={signOut}

@@ -10,7 +10,7 @@ import { ApiError, fetchOrders, ORDER_STATUSES } from "@/lib/api";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function OrdersPage() {
-  const { state, setData, signOut } = useAuthedLoad((token) => fetchOrders(token));
+  const { state, setData, signOut } = useAuthedLoad(() => fetchOrders());
   const [statusFilter, setStatusFilter] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filtering, setFiltering] = useState(false);
@@ -24,7 +24,7 @@ export default function OrdersPage() {
     setFiltering(true);
     try {
       const status = ORDER_STATUSES.find((candidate) => candidate === value);
-      const orders = await fetchOrders(state.token, status);
+      const orders = await fetchOrders(status);
       setData(() => orders);
     } catch (error) {
       setStatusFilter(previous);

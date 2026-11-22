@@ -13,7 +13,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
 const onUnauthorized = vi.fn();
 
 async function fill(current: string, next: string, confirm: string) {
-  render(<ChangePasswordForm token="tok" onUnauthorized={onUnauthorized} />);
+  render(<ChangePasswordForm onUnauthorized={onUnauthorized} />);
   const user = userEvent.setup();
   if (current) await user.type(screen.getByLabelText("Current password"), current);
   if (next) await user.type(screen.getByLabelText("New password"), next);
@@ -33,7 +33,7 @@ describe("ChangePasswordForm", () => {
     await fill("old-password", "brand-new-pass", "brand-new-pass");
 
     expect(await screen.findByRole("status")).toHaveTextContent("Password changed.");
-    expect(changePassword).toHaveBeenCalledWith("tok", "old-password", "brand-new-pass");
+    expect(changePassword).toHaveBeenCalledWith("old-password", "brand-new-pass");
     expect(screen.getByLabelText("Current password")).toHaveValue("");
     expect(screen.getByLabelText("New password")).toHaveValue("");
     expect(screen.getByLabelText("Confirm new password")).toHaveValue("");

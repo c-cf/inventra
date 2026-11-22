@@ -6,7 +6,6 @@ import { ApiError, changePassword } from "@/lib/api";
 import { newPasswordProblem } from "@/lib/passwords";
 
 type ChangePasswordFormProps = {
-  token: string;
   onUnauthorized: () => void;
 };
 
@@ -23,7 +22,7 @@ function validate(current: string, next: string, confirm: string): string | null
   return null;
 }
 
-export function ChangePasswordForm({ token, onUnauthorized }: Readonly<ChangePasswordFormProps>) {
+export function ChangePasswordForm({ onUnauthorized }: Readonly<ChangePasswordFormProps>) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -41,7 +40,7 @@ export function ChangePasswordForm({ token, onUnauthorized }: Readonly<ChangePas
 
     setPending(true);
     try {
-      await changePassword(token, current, next);
+      await changePassword(current, next);
       setCurrent("");
       setNext("");
       setConfirm("");

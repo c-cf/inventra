@@ -34,18 +34,21 @@ export type StockMovement = {
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
-  token?: string;
 };
 
-/** Single place that talks to the backend: builds headers, raises ApiError on non-2xx. */
-async function request<T>(path: string, { method = "GET", body, token }: RequestOptions = {}): Promise<T> {
+/**
+ * Single place that talks to the backend: raises ApiError on non-2xx.
+ * The session lives in an httpOnly cookie set by the API, so scripts never see a
+ * token; `credentials: "include"` makes the browser send (and accept) that cookie.
+ */
+async function request<T>(path: string, { method = "GET", body }: RequestOptions = {}): Promise<T> {
   const headers = new Headers();
   if (body !== undefined) headers.set("Content-Type", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers,
+    credentials: "include",
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -75,19 +78,23 @@ export function login(username: string, password: string): Promise<TokenResponse
   return request<TokenResponse>("/auth/login", { method: "POST", body: { username, password } });
 }
 
-export function fetchMe(token: string): Promise<User> {
-  return request<User>("/auth/me", { token });
+export function logout(): Promise<void> {
+  return request<void>("/auth/logout", { method: "POST" });
+}
+
+export function fetchMe(): Promise<User> {
+  return request<User>("/auth/me");
 }
 
 export type ProductQuery = { below?: number; q?: string };
 
-export function fetchProducts(token: string, query: ProductQuery = {}): Promise<Product[]> {
+export function fetchProducts(query: ProductQuery = {}): Promise<Product[]> {
   const params = new URLSearchParams();
   if (query.below !== undefined) params.set("below", String(query.below));
   const search = query.q?.trim();
   if (search) params.set("q", search);
   const queryString = params.toString();
-  return request<Product[]>(`/products${queryString ? `?${queryString}` : ""}`, { token });
+  return request<Product[]>(`/products${queryString ? `?${queryString}` : ""}`);
 }
 
 export type ProductInput = {
@@ -97,50 +104,35 @@ export type ProductInput = {
   quantity: number;
 };
 
-export function createProduct(token: string, input: ProductInput): Promise<Product> {
-  return request<Product>("/products", { method: "POST", body: input, token });
+export function createProduct(input: ProductInput): Promise<Product> {
+  return request<Product>("/products", { method: "POST", body: input });
 }
 
-export function fetchProduct(token: string, productId: number): Promise<Product> {
-  return request<Product>(`/products/${productId}`, { token });
+export function fetchProduct(productId: number): Promise<Product> {
+  return request<Product>(`/products/${productId}`);
 }
 
 export type ProductUpdate = Partial<Pick<Product, "sku" | "name" | "price">>;
 
-export function updateProduct(
-  token: string,
-  productId: number,
-  changes: ProductUpdate,
-): Promise<Product> {
-  return request<Product>(`/products/${productId}`, { method: "PATCH", body: changes, token });
+export function updateProduct(productId: number, changes: ProductUpdate): Promise<Product> {
+  return request<Product>(`/products/${productId}`, { method: "PATCH", body: changes });
 }
 
-export function deleteProduct(token: string, productId: number): Promise<void> {
-  return request<void>(`/products/${productId}`, { method: "DELETE", token });
+export function deleteProduct(productId: number): Promise<void> {
+  return request<void>(`/products/${productId}`, { method: "DELETE" });
 }
 
-export function adjustStock(
-  token: string,
-  productId: number,
-  change: number,
-  reason: string,
-): Promise<Product> {
+export function adjustStock(productId: number, change: number, reason: string): Promise<Product> {
   return request<Product>(`/products/${productId}/adjust`, {
     method: "POST",
-    token,
     body: { change, reason },
   });
 }
 
-export function fetchStockMovements(
-  token: string,
-  productId: number,
-): Promise<StockMovement[]> {
-  return request<StockMovement[]>(
-    `/products/${productId}/movements`,
-    { token },
-  );
+export function fetchStockMovements(productId: number): Promise<StockMovement[]> {
+  return request<StockMovement[]>(`/products/${productId}/movements`);
 }
+
 export const ORDER_STATUSES = ["pending", "paid", "shipped", "cancelled"] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -169,25 +161,21 @@ export type OrderInput = {
   items: { product_id: number; quantity: number }[];
 };
 
-export function fetchOrders(token: string, status?: OrderStatus): Promise<Order[]> {
+export function fetchOrders(status?: OrderStatus): Promise<Order[]> {
   const query = status === undefined ? "" : `?status=${encodeURIComponent(status)}`;
-  return request<Order[]>(`/orders${query}`, { token });
+  return request<Order[]>(`/orders${query}`);
 }
 
-export function fetchOrder(token: string, orderId: number): Promise<Order> {
-  return request<Order>(`/orders/${orderId}`, { token });
+export function fetchOrder(orderId: number): Promise<Order> {
+  return request<Order>(`/orders/${orderId}`);
 }
 
-export function createOrder(token: string, input: OrderInput): Promise<Order> {
-  return request<Order>("/orders", { method: "POST", body: input, token });
+export function createOrder(input: OrderInput): Promise<Order> {
+  return request<Order>("/orders", { method: "POST", body: input });
 }
 
-export function updateOrderStatus(
-  token: string,
-  orderId: number,
-  status: OrderStatus,
-): Promise<Order> {
-  return request<Order>(`/orders/${orderId}`, { method: "PATCH", body: { status }, token });
+export function updateOrderStatus(orderId: number, status: OrderStatus): Promise<Order> {
+  return request<Order>(`/orders/${orderId}`, { method: "PATCH", body: { status } });
 }
 
 export const ROLES = ["admin", "staff"] as const;
@@ -198,26 +186,23 @@ export type UserSummary = { id: number; username: string; role: Role; created_at
 
 export type UserInput = { username: string; password: string; role: Role };
 
-export function fetchUsers(token: string): Promise<UserSummary[]> {
-  return request<UserSummary[]>("/users", { token });
+export function fetchUsers(): Promise<UserSummary[]> {
+  return request<UserSummary[]>("/users");
 }
 
-export function createUser(token: string, input: UserInput): Promise<UserSummary> {
-  return request<UserSummary>("/users", { method: "POST", body: input, token });
+export function createUser(input: UserInput): Promise<UserSummary> {
+  return request<UserSummary>("/users", { method: "POST", body: input });
 }
 
-export function updateUserRole(token: string, userId: number, role: Role): Promise<UserSummary> {
-  return request<UserSummary>(`/users/${userId}`, { method: "PATCH", body: { role }, token });
+export function updateUserRole(userId: number, role: Role): Promise<UserSummary> {
+  return request<UserSummary>(`/users/${userId}`, { method: "PATCH", body: { role } });
 }
 
-export function changePassword(
-  token: string,
-  currentPassword: string,
+export function changePassword(currentPassword: string,
   newPassword: string,
 ): Promise<void> {
   return request<void>("/auth/password", {
     method: "POST",
     body: { current_password: currentPassword, new_password: newPassword },
-    token,
   });
 }

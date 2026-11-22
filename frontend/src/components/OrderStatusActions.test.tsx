@@ -28,7 +28,6 @@ const onUnauthorized = vi.fn();
 function renderActions(status: OrderStatus) {
   render(
     <OrderStatusActions
-      token="tok"
       order={order(status)}
       onChanged={onChanged}
       onUnauthorized={onUnauthorized}
@@ -81,7 +80,7 @@ describe("OrderStatusActions", () => {
 
     await user.click(screen.getByRole("button", { name: button }));
 
-    expect(updateOrderStatus).toHaveBeenCalledWith("tok", 7, target);
+    expect(updateOrderStatus).toHaveBeenCalledWith(7, target);
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith(order(target)));
   });
 

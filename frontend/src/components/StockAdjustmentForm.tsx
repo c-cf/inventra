@@ -5,14 +5,12 @@ import { useState, type FormEvent } from "react";
 import { adjustStock, ApiError, type Product } from "@/lib/api";
 
 type Props = {
-  token: string;
   products: Product[];
   onAdjusted: (product: Product) => void;
   onUnauthorized: () => void;
 };
 
 export function StockAdjustmentForm({
-  token,
   products,
   onAdjusted,
   onUnauthorized,
@@ -54,7 +52,6 @@ export function StockAdjustmentForm({
 
     try {
       const updated = await adjustStock(
-        token,
         Number(selectedId),
         amount,
         reason.trim(),

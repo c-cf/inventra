@@ -30,7 +30,6 @@ const onUnauthorized = vi.fn();
 function renderForm() {
   render(
     <OrderForm
-      token="tok"
       products={[keyboard, mouse, hub]}
       onCreated={onCreated}
       onUnauthorized={onUnauthorized}
@@ -61,7 +60,7 @@ describe("OrderForm", () => {
     await user.click(screen.getByRole("button", { name: "Place order" }));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
-    expect(createOrder).toHaveBeenCalledWith("tok", {
+    expect(createOrder).toHaveBeenCalledWith({
       customer_name: "ACME Corp",
       items: [{ product_id: 1, quantity: 2 }],
     });
@@ -119,7 +118,7 @@ describe("OrderForm", () => {
       await user.click(screen.getByRole("button", { name: "Place order" }));
 
       await waitFor(() => expect(createOrder).toHaveBeenCalledOnce());
-      expect(createOrder).toHaveBeenCalledWith("tok", {
+      expect(createOrder).toHaveBeenCalledWith({
         customer_name: "ACME Corp",
         items: [
           { product_id: 1, quantity: 2 },

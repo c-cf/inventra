@@ -5,7 +5,6 @@ import { useState } from "react";
 import { ApiError, type Role, ROLES, updateUserRole, type UserSummary } from "@/lib/api";
 
 type UserTableProps = {
-  token: string;
   users: UserSummary[];
   currentUserId: number;
   onChanged: (user: UserSummary) => void;
@@ -13,7 +12,6 @@ type UserTableProps = {
 };
 
 export function UserTable({
-  token,
   users,
   currentUserId,
   onChanged,
@@ -26,7 +24,7 @@ export function UserTable({
     setError(null);
     setPendingId(user.id);
     try {
-      onChanged(await updateUserRole(token, user.id, role));
+      onChanged(await updateUserRole(user.id, role));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         onUnauthorized();

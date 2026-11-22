@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-import type { User } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+import { logout, type User } from "@/lib/api";
 
 type AppHeaderProps = {
   user: User | null;
@@ -12,9 +12,17 @@ type AppHeaderProps = {
 
 export function AppHeader({ user }: AppHeaderProps) {
   const router = useRouter();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
-  function signOut() {
-    clearToken();
+  async function signOut() {
+    setSignOutError(null);
+    try {
+      await logout(); // only the API can clear the httpOnly session cookie
+    } catch {
+      // Leaving now would look like a sign-out while the session is still valid.
+      setSignOutError("Could not sign out. Check your connection and try again.");
+      return;
+    }
     router.push("/login");
   }
 
@@ -60,13 +68,18 @@ export function AppHeader({ user }: AppHeaderProps) {
           )}
           <button
             type="button"
-            onClick={signOut}
+            onClick={() => void signOut()}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
           >
             Sign out
           </button>
         </div>
       </div>
+      {signOutError && (
+        <p role="alert" className="mx-auto max-w-5xl px-6 pb-3 text-sm text-red-600">
+          {signOutError}
+        </p>
+      )}
     </header>
   );
 }

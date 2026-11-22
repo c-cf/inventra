@@ -5,7 +5,6 @@ import { useState } from "react";
 import { ApiError, type Order, type OrderStatus, updateOrderStatus } from "@/lib/api";
 
 type OrderStatusActionsProps = {
-  token: string;
   order: Order;
   onChanged: (order: Order) => void;
   onUnauthorized: () => void;
@@ -28,7 +27,6 @@ const ACTIONS: Record<OrderStatus, Action[]> = {
 };
 
 export function OrderStatusActions({
-  token,
   order,
   onChanged,
   onUnauthorized,
@@ -50,7 +48,7 @@ export function OrderStatusActions({
     setError(null);
     setPending(true);
     try {
-      onChanged(await updateOrderStatus(token, order.id, action.target));
+      onChanged(await updateOrderStatus(order.id, action.target));
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         onUnauthorized();

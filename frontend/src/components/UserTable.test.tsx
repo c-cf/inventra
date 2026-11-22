@@ -18,7 +18,6 @@ const onUnauthorized = vi.fn();
 function renderTable() {
   render(
     <UserTable
-      token="tok"
       users={[alice, bob]}
       currentUserId={1}
       onChanged={onChanged}
@@ -62,7 +61,7 @@ describe("UserTable", () => {
 
     await user.selectOptions(roleSelect("bob"), "admin");
 
-    expect(updateUserRole).toHaveBeenCalledWith("tok", 2, "admin");
+    expect(updateUserRole).toHaveBeenCalledWith(2, "admin");
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith({ ...bob, role: "admin" }));
   });
 
