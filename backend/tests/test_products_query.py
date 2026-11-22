@@ -77,3 +77,49 @@ def test_browsers_may_read_the_total_count_header(client):
     response = client.get("/health", headers={"Origin": "http://localhost:3000"})
 
     assert "x-total-count" in response.headers["access-control-expose-headers"].lower()
+
+
+def test_delete_product_requires_auth(client, catalogue):
+    assert client.delete(f"/products/{catalogue[0]['id']}").status_code == 401
+
+
+def test_delete_product_removes_it_and_its_stock_history(client, auth_headers, db, catalogue):
+    keyboard = catalogue[0]
+    client.post(
+        f"/products/{keyboard['id']}/adjust",
+        json={"change": 5, "reason": "restock"},
+        headers=auth_headers,
+    )
+
+    response = client.delete(f"/products/{keyboard['id']}", headers=auth_headers)
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert client.get(f"/products/{keyboard['id']}", headers=auth_headers).status_code == 404
+    remaining = db.execute(
+        "SELECT COUNT(*) FROM stock_movements WHERE product_id = ?", (keyboard["id"],)
+    ).fetchone()[0]
+    assert remaining == 0
+
+
+def test_delete_missing_product_returns_404(client, auth_headers):
+    response = client.delete("/products/999", headers=auth_headers)
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Product not found"
+
+
+def test_a_product_that_was_ordered_cannot_be_deleted(client, auth_headers, catalogue):
+    keyboard = catalogue[0]
+    order = client.post(
+        "/orders",
+        json={"customer_name": "ACME", "items": [{"product_id": keyboard["id"], "quantity": 1}]},
+        headers=auth_headers,
+    )
+    assert order.status_code == 201
+
+    response = client.delete(f"/products/{keyboard['id']}", headers=auth_headers)
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Product has orders and cannot be deleted"
+    assert client.get(f"/products/{keyboard['id']}", headers=auth_headers).status_code == 200
