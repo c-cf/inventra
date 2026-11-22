@@ -2,7 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 
-import { createOrder, type Order, type Product } from "@/lib/api";
+import { ApiError, createOrder, type Order, type Product } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 
 type OrderFormProps = {
@@ -47,10 +47,16 @@ function validate(customer: string, lines: Line[], products: Product[]): string 
   return null;
 }
 
-export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProps>) {
+export function OrderForm({
+  token,
+  products,
+  onCreated,
+  onUnauthorized,
+}: Readonly<OrderFormProps>) {
   const [customer, setCustomer] = useState("");
   const [lines, setLines] = useState<Line[]>([{ key: 1, productId: "", quantity: "1" }]);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
 
@@ -78,14 +84,29 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
     setError(problem);
     if (problem) return;
 
-    const order = await createOrder(token, {
-      customer_name: customer.trim(),
-      items: lines.map((line) => ({
-        product_id: Number(line.productId),
-        quantity: Number(line.quantity),
-      })),
-    });
-    onCreated(order);
+    setPending(true);
+    try {
+      const order = await createOrder(token, {
+        customer_name: customer.trim(),
+        items: lines.map((line) => ({
+          product_id: Number(line.productId),
+          quantity: Number(line.quantity),
+        })),
+      });
+      onCreated(order);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        onUnauthorized();
+        return;
+      }
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not reach the server. Is the backend running?",
+      );
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -175,9 +196,10 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
         <p className="text-sm font-semibold tabular-nums">Total: {formatCurrency(total)}</p>
         <button
           type="submit"
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+          disabled={pending}
+          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
         >
-          Place order
+          {pending ? "Placing¡K" : "Place order"}
         </button>
       </div>
     </form>
