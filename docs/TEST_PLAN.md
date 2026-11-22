@@ -184,9 +184,9 @@ Every fix for a behavioural defect starts with a failing test that reproduces it
 | F1 | `test_auth.py`, `test_cookie_auth.py`, `test_security.py`, `test_cors.py`, `test_health.py` | `api.session.test.ts`, `api.test.ts`, `proxy.test.ts`, `LoginForm.test.tsx`, `login/page.test.tsx`, `AppHeader.test.tsx`, page redirect tests | `auth.spec.ts` |
 | F2 | `test_auth_service.py`, `test_login_throttle.py`, `test_login_throttle_unit.py`, `test_config.py` | — | — |
 | F3 | `test_users.py`, `test_users_repository.py`, `test_password_change.py`, `test_staff_access.py`, `test_seed.py`, `test_case_insensitive.py`, `test_existing_database.py` | `UserCreateForm`, `UserTable`, `ChangePasswordForm`, `users/page`, `account/page`, `passwords.test.ts`, `api.users.test.ts` | `roles.spec.ts` |
-| F4 | `test_products.py`, `test_products_query.py`, `test_products_repository.py`, `test_case_insensitive.py`, `test_existing_database.py` | `ProductForm`, `ProductTable`, `ProductEditForm`, `ProductDetail`, `products/page.test.tsx`, `page.search.test.tsx`, `page.activity.test.tsx`, `products/[id]/page.test.tsx`, `api.products.test.ts` | `products.spec.ts`, `inventory.spec.ts` |
+| F4 | `test_products.py`, `test_products_query.py`, `test_products_repository.py`, `test_case_insensitive.py`, `test_existing_database.py` | `ProductForm`, `ProductTable`, `ProductEditForm`, `ProductDetail`, `products/page.test.tsx`, `page.search.test.tsx`, `page.activity.test.tsx`, `loadForLatest.test.ts`, `products/[id]/page.test.tsx`, `api.products.test.ts` | `products.spec.ts`, `inventory.spec.ts` |
 | F5 | `test_inventory.py` | `StockAdjustmentForm`, `StockMovementHistory`, `page.inventory.test.tsx` | `inventory.spec.ts` |
-| F6 | `test_orders.py`, `test_orders_service.py` | `OrderForm`, `OrderTable`, `OrderStatusActions`, `OrderDetail`, `orders/*page.test.tsx`, `api.orders.test.ts` | `orders.spec.ts`, `roles.spec.ts` |
+| F6 | `test_orders.py`, `test_orders_service.py` | `OrderForm`, `OrderTable`, `OrderStatusActions`, `OrderDetail`, `orders/*page.test.tsx`, `orders/page.activity.test.tsx`, `loadForLatest.test.ts`, `api.orders.test.ts` | `orders.spec.ts`, `roles.spec.ts` |
 | F7 | out-of-range and validation tests in each module | form validation tests | — |
 | F8 | — | — | CI `docker` job |
 
