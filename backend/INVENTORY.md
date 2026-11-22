@@ -86,8 +86,11 @@ Verified operations include:
 
 - Backend Inventory API: Completed.
 - Automated backend tests: Completed.
-- Frontend Inventory integration: Pending.
+- Frontend Inventory integration: Completed — the products page has stock
+  adjustment, movement history (refreshed after each adjustment) and a
+  low-stock filter that combines with product search.
+- End-to-end coverage: `frontend/e2e/inventory.spec.ts`.
 
-## Next Steps
-
-Integrate Inventory features into the existing Next.js product page, including low-stock filtering, stock adjustment, and movement history.
+Orders also write stock movements (`order #N`, `order #N cancelled`), so the
+history shows every change to a product's stock. See the root README for the
+full API and the [test plan](../docs/TEST_PLAN.md).
