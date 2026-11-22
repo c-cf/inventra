@@ -149,6 +149,21 @@ def test_a_product_that_was_ordered_cannot_be_deleted(client, auth_headers, cata
     assert client.get(f"/products/{keyboard['id']}", headers=auth_headers).status_code == 200
 
 
+def test_a_refused_delete_keeps_the_stock_history(client, auth_headers, db, catalogue):
+    keyboard = catalogue[0]
+    client.post(
+        "/orders",
+        json={"customer_name": "ACME", "items": [{"product_id": keyboard["id"], "quantity": 1}]},
+        headers=auth_headers,
+    )
+    before = client.get(f"/products/{keyboard['id']}/movements", headers=auth_headers).json()
+
+    assert client.delete(f"/products/{keyboard['id']}", headers=auth_headers).status_code == 409
+
+    after = client.get(f"/products/{keyboard['id']}/movements", headers=auth_headers).json()
+    assert after == before != []
+
+
 HUGE = 10**20  # larger than SQLite's 64-bit INTEGER
 
 
