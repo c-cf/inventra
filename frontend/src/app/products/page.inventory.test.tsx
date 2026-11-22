@@ -117,3 +117,34 @@ describe("ProductsPage with an active low-stock filter", () => {
     expect(await screen.findByText("No products yet.")).toBeInTheDocument();
   });
 });
+
+describe("ProductsPage stock movement history", () => {
+  it("reloads the displayed history after the stock is adjusted", async () => {
+    vi.mocked(fetchProducts).mockResolvedValue([keyboard]);
+    vi.mocked(fetchStockMovements)
+      .mockResolvedValueOnce([
+        { id: 1, product_id: 1, change: 5, reason: "restock", created_at: "2026-11-22 10:00:00" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 1, product_id: 1, change: 5, reason: "restock", created_at: "2026-11-22 10:00:00" },
+        { id: 2, product_id: 1, change: -3, reason: "damaged", created_at: "2026-11-22 11:00:00" },
+      ]);
+    vi.mocked(adjustStock).mockResolvedValue({ ...keyboard, quantity: 22 });
+
+    render(<ProductsPage />);
+    await screen.findByRole("cell", { name: "Mechanical Keyboard" });
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText("Movement product"), "1");
+    await user.click(screen.getByRole("button", { name: "View Movements" }));
+    await screen.findByText("restock");
+
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    await user.type(screen.getByLabelText("Stock change"), "-3");
+    await user.type(screen.getByLabelText("Adjustment reason"), "damaged");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+
+    expect(await screen.findByText("damaged")).toBeInTheDocument();
+    expect(fetchStockMovements).toHaveBeenCalledTimes(2);
+  });
+});
