@@ -116,3 +116,51 @@ export function fetchStockMovements(
     { token },
   );
 }
+export const ORDER_STATUSES = ["pending", "paid", "shipped", "cancelled"] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export type OrderItem = {
+  product_id: number;
+  sku: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+};
+
+export type Order = {
+  id: number;
+  customer_name: string;
+  status: OrderStatus;
+  created_by: number;
+  created_at: string;
+  items: OrderItem[];
+  total: number;
+};
+
+export type OrderInput = {
+  customer_name: string;
+  items: { product_id: number; quantity: number }[];
+};
+
+export function fetchOrders(token: string, status?: OrderStatus): Promise<Order[]> {
+  const query = status === undefined ? "" : `?status=${encodeURIComponent(status)}`;
+  return request<Order[]>(`/orders${query}`, { token });
+}
+
+export function fetchOrder(token: string, orderId: number): Promise<Order> {
+  return request<Order>(`/orders/${orderId}`, { token });
+}
+
+export function createOrder(token: string, input: OrderInput): Promise<Order> {
+  return request<Order>("/orders", { method: "POST", body: input, token });
+}
+
+export function updateOrderStatus(
+  token: string,
+  orderId: number,
+  status: OrderStatus,
+): Promise<Order> {
+  return request<Order>(`/orders/${orderId}`, { method: "PATCH", body: { status }, token });
+}
