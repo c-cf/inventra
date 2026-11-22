@@ -140,10 +140,7 @@ def _like_pattern(text: str) -> str:
     return f"%{escaped}%"
 
 
-def find(
-    conn: sqlite3.Connection, *, q: str | None = None, below: int | None = None
-) -> list[Product]:
-    """Products matching an optional name/SKU search and low-stock threshold."""
+def _filters(q: str | None, below: int | None) -> tuple[str, list[object]]:
     clauses: list[str] = []
     params: list[object] = []
     if q:
@@ -152,6 +149,27 @@ def find(
     if below is not None:
         clauses.append("quantity < ?")
         params.append(below)
-    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    rows = conn.execute(f"SELECT * FROM products {where} ORDER BY id", params).fetchall()
+    return (f"WHERE {' AND '.join(clauses)}" if clauses else ""), params
+
+
+def find(
+    conn: sqlite3.Connection,
+    *,
+    q: str | None = None,
+    below: int | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Product]:
+    """Products matching an optional name/SKU search and low-stock threshold."""
+    where, params = _filters(q, below)
+    sql = f"SELECT * FROM products {where} ORDER BY id"
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        params += [limit, offset]
+    rows = conn.execute(sql, params).fetchall()
     return [_to_product(row) for row in rows]
+
+
+def count(conn: sqlite3.Connection, *, q: str | None = None, below: int | None = None) -> int:
+    where, params = _filters(q, below)
+    return conn.execute(f"SELECT COUNT(*) FROM products {where}", params).fetchone()[0]

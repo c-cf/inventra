@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
@@ -18,10 +18,15 @@ router = APIRouter(prefix="/products", tags=["products"])
 def list_products(
     conn: DbConn,
     _: CurrentUser,
+    response: Response,
     below: int | None = Query(default=None, ge=0),
     q: str | None = Query(default=None, max_length=100),
+    limit: int | None = Query(default=None, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> list[ProductOut]:
-    items = products.find(conn, q=q.strip() if q else None, below=below)
+    search = q.strip() if q else None
+    items = products.find(conn, q=search, below=below, limit=limit, offset=offset)
+    response.headers["X-Total-Count"] = str(products.count(conn, q=search, below=below))
     return [ProductOut.model_validate(item) for item in items]
 
 

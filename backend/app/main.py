@@ -28,6 +28,8 @@ def create_app() -> FastAPI:
         allow_origins=get_settings().cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Lets the frontend read the total behind a paginated product list.
+        expose_headers=["X-Total-Count"],
     )
     app.include_router(health.router)
     app.include_router(auth.router)
