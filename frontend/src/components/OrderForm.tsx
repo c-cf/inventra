@@ -26,9 +26,28 @@ function lineTotal(line: Line, products: Product[]): number {
   return product.price * quantity;
 }
 
+/** Mirrors the API's rules so most mistakes never leave the browser. */
+function validate(customer: string, lines: Line[], products: Product[]): string | null {
+  if (customer.trim() === "") return "Customer is required.";
+  for (const [index, line] of lines.entries()) {
+    const n = index + 1;
+    const product = products.find((p) => String(p.id) === line.productId);
+    if (!product) return `Choose a product for line ${n}.`;
+    const quantity = Number(line.quantity);
+    if (line.quantity.trim() === "" || !Number.isInteger(quantity) || quantity <= 0) {
+      return `Quantity for line ${n} must be a whole number of 1 or more.`;
+    }
+    if (quantity > product.quantity) {
+      return `Only ${product.quantity} of ${product.sku} in stock.`;
+    }
+  }
+  return null;
+}
+
 export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProps>) {
   const [customer, setCustomer] = useState("");
   const [lines, setLines] = useState<Line[]>([{ key: 1, productId: "", quantity: "1" }]);
+  const [error, setError] = useState<string | null>(null);
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line, products), 0);
 
@@ -40,6 +59,10 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const problem = validate(customer, lines, products);
+    setError(problem);
+    if (problem) return;
 
     const order = await createOrder(token, {
       customer_name: customer.trim(),
@@ -104,6 +127,15 @@ export function OrderForm({ token, products, onCreated }: Readonly<OrderFormProp
           </div>
         );
       })}
+
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+        >
+          {error}
+        </p>
+      )}
 
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold tabular-nums">Total: {formatCurrency(total)}</p>
