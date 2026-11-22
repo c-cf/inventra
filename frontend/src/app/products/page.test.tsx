@@ -12,15 +12,7 @@ import {
   fetchProducts,
   fetchStockMovements,
 } from "@/lib/api";
-
-const router = vi.hoisted(() => ({
-  replace: vi.fn(),
-  push: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => router,
-}));
+import { hardNavigate } from "@/lib/hardNavigate";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -49,9 +41,6 @@ const keyboard = {
 beforeEach(() => {
   window.localStorage.clear();
 
-  router.replace.mockReset();
-  router.push.mockReset();
-
   vi.mocked(fetchStockMovements).mockReset();
   vi.mocked(fetchMe).mockReset();
   vi.mocked(fetchProducts).mockReset();
@@ -65,7 +54,7 @@ describe("ProductsPage", () => {
 
     render(<ProductsPage />);
 
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
+    await waitFor(() => expect(hardNavigate).toHaveBeenCalledWith("/login"));
   });
 
   it("shows the signed-in user and the product list", async () => {
@@ -96,7 +85,7 @@ describe("ProductsPage", () => {
     render(<ProductsPage />);
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/login");
+      expect(hardNavigate).toHaveBeenCalledWith("/login");
     });
   });
 
@@ -116,7 +105,7 @@ describe("ProductsPage", () => {
       /failed to fetch/i,
     );
 
-    expect(router.replace).not.toHaveBeenCalled();
+    expect(hardNavigate).not.toHaveBeenCalled();
   });
 
   it("adds a newly created product to the table", async () => {
@@ -186,7 +175,7 @@ describe("ProductsPage", () => {
     );
 
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/login");
+      expect(hardNavigate).toHaveBeenCalledWith("/login");
     });
   });
 

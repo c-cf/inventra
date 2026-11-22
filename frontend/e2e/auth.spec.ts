@@ -32,4 +32,14 @@ test.describe("signing in and out", () => {
     await page.goto("/products");
     await expect(page).toHaveURL(/\/login$/);
   });
+
+  test("signing out leaves an empty login form for the next person (#24)", async ({ page }) => {
+    await signIn(page);
+
+    await page.getByRole("button", { name: "Sign out" }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("textbox", { name: "Username" })).toHaveValue("");
+    await expect(page.getByLabel("Password").filter({ visible: true })).toHaveValue("");
+  });
 });

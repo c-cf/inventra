@@ -1,17 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { logout, type User } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 type AppHeaderProps = {
   user: User | null;
 };
 
 export function AppHeader({ user }: AppHeaderProps) {
-  const router = useRouter();
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function signOut() {
@@ -23,7 +22,7 @@ export function AppHeader({ user }: AppHeaderProps) {
       setSignOutError("Could not sign out. Check your connection and try again.");
       return;
     }
-    router.push("/login");
+    hardNavigate("/login");
   }
 
   return (
