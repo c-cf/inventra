@@ -16,7 +16,11 @@ test("staff do not get user management or product deletion", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Delete product" })).toHaveCount(0);
 
   await page.goto("/users");
-  await expect(page.getByRole("alert").filter({ hasText: "Admin role required" })).toBeVisible();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Only admins can manage users." }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Back to products" }).click();
+  await expect(page).toHaveURL(/\/products$/);
 });
 
 test("an admin adds a staff member who can then sign in and change their password", async ({ page }) => {

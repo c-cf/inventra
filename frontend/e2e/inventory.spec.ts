@@ -15,6 +15,7 @@ test("a new product can be restocked and its movement history shows the change",
   await page.getByLabel("Adjustment reason").fill("supplier delivery");
   await page.getByRole("button", { name: "Adjust Stock" }).click();
 
+  await expect(page.getByText("E2E Restock Widget now has 10 in stock.")).toBeVisible();
   await expect(quantityCell(page, sku)).toHaveText("10");
 
   await page.getByLabel("Movement product").selectOption({ label: `E2E Restock Widget (${sku})` });

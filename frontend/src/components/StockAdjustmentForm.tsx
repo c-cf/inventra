@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useLayoutEffect, useState, type FormEvent } from "react";
 
 import { adjustStock, ApiError, type Product } from "@/lib/api";
 
@@ -19,6 +19,14 @@ export function StockAdjustmentForm({
   const [change, setChange] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
+  // Confirms the last successful adjustment; the product table may be out of view.
+  const [confirmation, setConfirmation] = useState("");
+
+  // Next.js keeps this page mounted while hidden and reloads the products when it is
+  // shown again, so drop the confirmation on the way out before it goes stale.
+  useLayoutEffect(() => {
+    return () => setConfirmation("");
+  }, []);
   const [loading, setLoading] = useState(false);
 
   // A selection only counts while the product is still listed (a filter or an
@@ -29,6 +37,7 @@ export function StockAdjustmentForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setConfirmation("");
 
     const amount = Number(change);
 
@@ -60,6 +69,7 @@ export function StockAdjustmentForm({
       onAdjusted(updated);
       setChange("");
       setReason("");
+      setConfirmation(`${updated.name} now has ${updated.quantity} in stock.`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         onUnauthorized();
@@ -142,6 +152,12 @@ export function StockAdjustmentForm({
         {error && (
           <p role="alert" className="text-sm text-red-600">
             {error}
+          </p>
+        )}
+
+        {confirmation && (
+          <p role="status" className="text-sm text-green-700 dark:text-green-400">
+            {confirmation}
           </p>
         )}
       </form>
