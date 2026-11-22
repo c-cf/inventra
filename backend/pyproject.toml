@@ -17,12 +17,22 @@ dev = [
     "pytest>=8.3",
     "httpx2",
     "ruff>=0.6",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 90
 
 [tool.ruff]
 line-length = 100
