@@ -82,4 +82,25 @@ describe("OrderForm", () => {
     expect(screen.getByRole("option", { name: "Keyboard (KB-001) · 10 in stock" })).toBeEnabled();
     expect(screen.getByRole("option", { name: "USB Hub (HB-001) · 0 in stock" })).toBeDisabled();
   });
+
+  describe("validation", () => {
+    it.each([
+      ["a blank customer", "   ", "1", "2", "Customer is required."],
+      ["a line without a product", "ACME", "", "2", "Choose a product for line 1."],
+      ["a zero quantity", "ACME", "1", "0", "Quantity for line 1 must be a whole number of 1 or more."],
+      ["a fractional quantity", "ACME", "1", "1.5", "Quantity for line 1 must be a whole number of 1 or more."],
+      ["more than is in stock", "ACME", "2", "4", "Only 3 of MS-001 in stock."],
+    ])("rejects %s without calling the API", async (_case, customer, productId, qty, message) => {
+      const user = renderForm();
+
+      await user.type(screen.getByLabelText("Customer"), customer);
+      if (productId) await user.selectOptions(screen.getByLabelText("Product 1"), productId);
+      await user.clear(screen.getByLabelText("Quantity 1"));
+      await user.type(screen.getByLabelText("Quantity 1"), qty);
+      await user.click(screen.getByRole("button", { name: "Place order" }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent(message);
+      expect(createOrder).not.toHaveBeenCalled();
+    });
+  });
 });
