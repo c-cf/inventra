@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe("LoginForm", () => {
-  it("submits the entered credentials and reports the token", async () => {
+  it("submits the entered credentials and reports success without handing out the token", async () => {
     loginMock.mockResolvedValue({ access_token: "tok", token_type: "bearer" });
     const onSuccess = vi.fn();
     render(<LoginForm onSuccess={onSuccess} />);
@@ -32,7 +32,7 @@ describe("LoginForm", () => {
     await fillAndSubmit("alice", "secret123");
 
     expect(loginMock).toHaveBeenCalledWith("alice", "secret123");
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith("tok"));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith());
   });
 
   it("shows the backend's message when the credentials are rejected", async () => {

@@ -37,13 +37,18 @@ describe("AppHeader", () => {
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
   });
 
-  it("still goes to /login when the sign-out request fails", async () => {
+  it("says so and stays put when the sign-out request fails", async () => {
+    // The session cookie is httpOnly, so only the API can clear it; leaving the page
+    // would look like a sign-out while the session is still valid.
     vi.mocked(logout).mockRejectedValue(new TypeError("Failed to fetch"));
     render(<AppHeader user={{ id: 1, username: "alice", role: "admin" }} />);
 
     await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/login"));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not sign out. Check your connection and try again.",
+    );
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("links to the products and orders pages", () => {
