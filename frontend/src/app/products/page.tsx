@@ -45,6 +45,7 @@ export default function ProductsPage() {
   const [filterError, setFilterError] = useState("");
   const [filterLoading, setFilterLoading] = useState(false);
   const [activeBelow, setActiveBelow] = useState<number | null>(null);
+  const [movementsVersion, setMovementsVersion] = useState(0);
 
   useEffect(() => {
     const token = getToken();
@@ -116,6 +117,7 @@ export default function ProductsPage() {
   }
 
   function handleAdjusted(product: Product) {
+    setMovementsVersion((version) => version + 1);
     setState((prev) =>
       prev.status === "ready"
         ? {
@@ -308,6 +310,7 @@ export default function ProductsPage() {
           token={state.token}
           products={state.products}
           onUnauthorized={handleUnauthorized}
+          refreshKey={movementsVersion}
         />
 
         {/* Product List */}
