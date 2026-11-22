@@ -40,10 +40,34 @@ def test_search_products_by_name_or_sku(client, auth_headers, catalogue, query, 
     assert skus(response) == expected
 
 
-def test_search_treats_like_wildcards_literally(client, auth_headers, catalogue):
-    response = client.get("/products", params={"q": "%"}, headers=auth_headers)
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("%", ["PCT-1"]),
+        ("50%", ["PCT-1"]),
+        ("_", ["USC-1"]),
+        ("r_s", ["USC-1"]),
+        ("!", ["BNG-1"]),
+        ("wow!", ["BNG-1"]),
+        ("!!", []),
+    ],
+)
+def test_search_treats_like_wildcards_literally(client, auth_headers, catalogue, query, expected):
+    for sku, name in [
+        ("PCT-1", "Wow 50% off"),
+        ("USC-1", "under_score"),
+        ("BNG-1", "Wow! Deal"),
+        ("PLN-1", "Plain 5000 rs"),
+    ]:
+        client.post(
+            "/products",
+            json={"sku": sku, "name": name, "price": 1, "quantity": 1},
+            headers=auth_headers,
+        )
 
-    assert skus(response) == []
+    response = client.get("/products", params={"q": query}, headers=auth_headers)
+
+    assert skus(response) == expected
 
 
 def test_search_combines_with_the_low_stock_filter(client, auth_headers, catalogue):
