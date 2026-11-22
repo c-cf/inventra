@@ -28,6 +28,12 @@ export function StockMovementHistory({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
+  // A selection only counts while the product is still listed (a filter or an
+  // adjustment can remove it); otherwise the select shows the placeholder.
+  const selectedId = products.some((product) => String(product.id) === productId)
+    ? productId
+    : "";
+  const showHistory = selectedId !== "";
   // The product whose history is on screen; refreshes re-fetch it.
   const viewedId = useRef<number | null>(null);
   // Responses that arrive after a newer request (or a selection change) are dropped.
@@ -49,12 +55,12 @@ export function StockMovementHistory({
   }
 
   async function handleViewMovements() {
-    if (!productId) {
+    if (!selectedId) {
       setError("Please select a product.");
       return;
     }
 
-    const id = Number(productId);
+    const id = Number(selectedId);
     const request = ++latestRequest.current;
 
     setError("");
@@ -110,7 +116,7 @@ export function StockMovementHistory({
 
           <select
             id="movement-product"
-            value={productId}
+            value={selectedId}
             onChange={(event) => {
               latestRequest.current += 1;
               setProductId(event.target.value);
@@ -147,13 +153,13 @@ export function StockMovementHistory({
         </p>
       )}
 
-      {searched && movements.length === 0 && (
+      {showHistory && searched && movements.length === 0 && (
         <p className="text-sm text-zinc-500">
           No stock movements found.
         </p>
       )}
 
-      {movements.length > 0 && (
+      {showHistory && movements.length > 0 && (
         <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-left dark:bg-zinc-900">
