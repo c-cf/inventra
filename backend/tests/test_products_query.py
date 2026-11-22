@@ -203,3 +203,15 @@ def test_adjust_rejects_an_out_of_range_change(client, auth_headers, catalogue):
     )
 
     assert response.status_code == 422
+
+
+def test_search_matches_non_ascii_names_typed_exactly(client, auth_headers):
+    client.post(
+        "/products",
+        json={"sku": "EC-1", "name": "Écran Ärger", "price": 1, "quantity": 1},
+        headers=auth_headers,
+    )
+
+    response = client.get("/products", params={"q": "Écran"}, headers=auth_headers)
+
+    assert skus(response) == ["EC-1"]
