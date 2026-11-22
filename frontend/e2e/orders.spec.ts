@@ -97,9 +97,13 @@ test("the status filter still applies after coming back from an order (#37)", as
   await page.getByRole("button", { name: "Mark as paid" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("paid");
 
+  // The paid order only shows once the list has been reloaded, and only goes once the
+  // filter has been applied: each step waits for its own response.
   await page.getByRole("banner").getByRole("link", { name: "Orders", exact: true }).click();
-  await page.getByLabel("Status").selectOption("pending");
-  await expect(page.getByRole("row").filter({ hasText: paid })).toHaveCount(0);
+  const paidRow = page.getByRole("row").filter({ hasText: paid });
+  await expect(paidRow).toBeVisible();
+  await page.getByRole("combobox", { name: "Status" }).selectOption("pending");
+  await expect(paidRow).toHaveCount(0);
   const staysRow = page.getByRole("row").filter({ hasText: stays });
   await expect(staysRow).toBeVisible();
 
@@ -110,7 +114,9 @@ test("the status filter still applies after coming back from an order (#37)", as
   await expect(page.getByRole("heading", { level: 1 })).toContainText("paid");
   await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Orders" }).click();
 
-  await expect(page.getByRole("row").filter({ hasText: stays })).toHaveCount(0);
-  await expect(page.getByRole("row").filter({ hasText: paid })).toHaveCount(0);
-  await expect(page.getByLabel("Status")).toHaveValue("pending");
+  // A role locator skips the hidden list, so this passes only once /orders is shown again;
+  // from then on the list still holds the order until the reload replaces it.
+  await expect(page.getByRole("combobox", { name: "Status" })).toHaveValue("pending");
+  await expect(staysRow).toHaveCount(0);
+  await expect(paidRow).toHaveCount(0);
 });
