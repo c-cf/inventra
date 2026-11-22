@@ -4,7 +4,8 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import orders
-from app.schemas.order import MAX_ID, OrderCreate, OrderOut, OrderStatus, OrderStatusUpdate
+from app.schemas.limits import MAX_ID
+from app.schemas.order import OrderCreate, OrderOut, OrderStatus, OrderStatusUpdate
 from app.services import orders as order_service
 
 router = APIRouter(prefix="/orders", tags=["orders"])

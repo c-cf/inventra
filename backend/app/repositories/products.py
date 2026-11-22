@@ -11,6 +11,10 @@ class InsufficientStockError(Exception):
     """Raised when stock would become negative."""
 
 
+class ProductInUseError(Exception):
+    """Raised when deleting a product that order items still reference."""
+
+
 def _is_duplicate_sku(exc: sqlite3.IntegrityError) -> bool:
     # Match the UNIQUE violation only: a NOT NULL failure also mentions products.sku.
     return "UNIQUE constraint failed: products.sku" in str(exc)
@@ -51,8 +55,7 @@ def get_by_id(conn: sqlite3.Connection, product_id: int) -> Product | None:
 
 
 def list_all(conn: sqlite3.Connection) -> list[Product]:
-    rows = conn.execute("SELECT * FROM products ORDER BY id").fetchall()
-    return [_to_product(row) for row in rows]
+    return find(conn)
 
 
 def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | None:
@@ -120,21 +123,57 @@ def get_stock_movements(conn: sqlite3.Connection, product_id: int) -> list[Stock
     return [_to_movement(row) for row in rows]
 
 
-def get_low_stock_products(
-    conn: sqlite3.Connection,
-    below: int,
-) -> list[Product]:
-    rows = conn.execute(
-        """
-        SELECT *
-        FROM products
-        WHERE quantity < ?
-        ORDER BY id ASC
-        """,
-        (below,),
-    ).fetchall()
+_LIKE_ESCAPE = "!"
 
+
+def _like_pattern(text: str) -> str:
+    """Substring pattern in which %, _ and ! match themselves.
+
+    SQLite's LIKE already ignores case for ASCII letters. Lower-casing here (or
+    with SQLite's ASCII-only lower()) would stop non-ASCII names such as "Écran"
+    matching even when typed exactly.
+    """
+    escaped = (
+        text.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        .replace("%", f"{_LIKE_ESCAPE}%")
+        .replace("_", f"{_LIKE_ESCAPE}_")
+    )
+    return f"%{escaped}%"
+
+
+def _filters(q: str | None, below: int | None) -> tuple[str, list[object]]:
+    clauses: list[str] = []
+    params: list[object] = []
+    if q:
+        clauses.append("(name LIKE ? ESCAPE '!' OR sku LIKE ? ESCAPE '!')")
+        params += [_like_pattern(q), _like_pattern(q)]
+    if below is not None:
+        clauses.append("quantity < ?")
+        params.append(below)
+    return (f"WHERE {' AND '.join(clauses)}" if clauses else ""), params
+
+
+def find(
+    conn: sqlite3.Connection,
+    *,
+    q: str | None = None,
+    below: int | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[Product]:
+    """Products matching an optional name/SKU search and low-stock threshold."""
+    where, params = _filters(q, below)
+    sql = f"SELECT * FROM products {where} ORDER BY id"
+    if limit is not None or offset:
+        sql += " LIMIT ? OFFSET ?"
+        params += [-1 if limit is None else limit, offset]  # SQLite: LIMIT -1 = no limit
+    rows = conn.execute(sql, params).fetchall()
     return [_to_product(row) for row in rows]
+
+
+def count(conn: sqlite3.Connection, *, q: str | None = None, below: int | None = None) -> int:
+    where, params = _filters(q, below)
+    return conn.execute(f"SELECT COUNT(*) FROM products {where}", params).fetchone()[0]
 
 
 def remove_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> bool:
@@ -157,3 +196,21 @@ def record_movement(conn: sqlite3.Connection, product_id: int, change: int, reas
 def add_stock(conn: sqlite3.Connection, product_id: int, quantity: int) -> None:
     """Put quantity back into stock. Does not commit."""
     conn.execute("UPDATE products SET quantity = quantity + ? WHERE id = ?", (quantity, product_id))
+
+
+def delete(conn: sqlite3.Connection, product_id: int) -> bool:
+    """Delete a product and its stock history. False when it does not exist.
+
+    Order items reference products, so the foreign key refuses to delete an
+    ordered product even if an order lands between a check and the delete.
+    """
+    try:
+        conn.execute("DELETE FROM stock_movements WHERE product_id = ?", (product_id,))
+        cursor = conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    except sqlite3.IntegrityError as exc:
+        conn.rollback()
+        if "FOREIGN KEY constraint failed" in str(exc):
+            raise ProductInUseError(product_id) from exc
+        raise
+    conn.commit()
+    return cursor.rowcount == 1

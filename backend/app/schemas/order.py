@@ -2,11 +2,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.limits import MAX_ID
+
 OrderStatus = Literal["pending", "paid", "shipped", "cancelled"]
 
 
-# SQLite INTEGER is 64-bit; larger ids would overflow in the driver instead of a clean 422.
-MAX_ID = 2**63 - 1
 MAX_ORDER_QUANTITY = 1_000_000
 
 

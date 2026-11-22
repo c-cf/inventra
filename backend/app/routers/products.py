@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Path, Query, Response, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import products
 from app.repositories.products import DuplicateSkuError
+from app.schemas.limits import MAX_ID
 from app.schemas.product import (
     ProductCreate,
     ProductOut,
@@ -13,18 +16,22 @@ from app.schemas.product import (
 
 router = APIRouter(prefix="/products", tags=["products"])
 
+ProductId = Annotated[int, Path(ge=1, le=MAX_ID)]
+
 
 @router.get("", response_model=list[ProductOut])
 def list_products(
     conn: DbConn,
     _: CurrentUser,
-    below: int | None = Query(default=None, ge=0),
+    response: Response,
+    below: int | None = Query(default=None, ge=0, le=MAX_ID),
+    q: str | None = Query(default=None, max_length=100),
+    limit: int | None = Query(default=None, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=MAX_ID),
 ) -> list[ProductOut]:
-    if below is not None:
-        items = products.get_low_stock_products(conn, below)
-    else:
-        items = products.list_all(conn)
-
+    search = q.strip() if q else None
+    items = products.find(conn, q=search, below=below, limit=limit, offset=offset)
+    response.headers["X-Total-Count"] = str(products.count(conn, q=search, below=below))
     return [ProductOut.model_validate(item) for item in items]
 
 
@@ -40,7 +47,7 @@ def create_product(payload: ProductCreate, conn: DbConn, _: CurrentUser) -> Prod
 
 
 @router.get("/{product_id}", response_model=ProductOut)
-def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
+def get_product(product_id: ProductId, conn: DbConn, _: CurrentUser) -> ProductOut:
     product = products.get_by_id(conn, product_id)
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
@@ -49,7 +56,7 @@ def get_product(product_id: int, conn: DbConn, _: CurrentUser) -> ProductOut:
 
 @router.patch("/{product_id}", response_model=ProductOut)
 def update_product(
-    product_id: int, payload: ProductUpdate, conn: DbConn, _: CurrentUser
+    product_id: ProductId, payload: ProductUpdate, conn: DbConn, _: CurrentUser
 ) -> ProductOut:
     try:
         product = products.update(conn, product_id, **payload.model_dump(exclude_unset=True))
@@ -64,7 +71,7 @@ def update_product(
 
 @router.post("/{product_id}/adjust", response_model=ProductOut)
 def adjust_stock(
-    product_id: int,
+    product_id: ProductId,
     payload: StockAdjustment,
     conn: DbConn,
     _: CurrentUser,
@@ -93,7 +100,7 @@ def adjust_stock(
 
 @router.get("/{product_id}/movements", response_model=list[StockMovementOut])
 def get_stock_movements(
-    product_id: int,
+    product_id: ProductId,
     conn: DbConn,
     _: CurrentUser,
 ) -> list[StockMovementOut]:
@@ -108,3 +115,17 @@ def get_stock_movements(
     movements = products.get_stock_movements(conn, product_id)
 
     return [StockMovementOut.model_validate(movement) for movement in movements]
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(product_id: ProductId, conn: DbConn, _: CurrentUser) -> Response:
+    try:
+        deleted = products.delete(conn, product_id)
+    except products.ProductInUseError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product has orders and cannot be deleted",
+        ) from None
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
