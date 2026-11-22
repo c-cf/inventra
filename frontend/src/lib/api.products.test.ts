@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteProduct, fetchProducts, updateProduct, type Product } from "@/lib/api";
+import { deleteProduct, fetchProduct, fetchProducts, updateProduct, type Product } from "@/lib/api";
 
 const keyboard: Product = {
   id: 1,
@@ -90,5 +90,15 @@ describe("deleteProduct", () => {
       status: 409,
       message: "Product has orders and cannot be deleted",
     });
+  });
+});
+
+describe("fetchProduct", () => {
+  it("fetches one product by id", async () => {
+    const fetchMock = stubFetch(json(keyboard));
+
+    expect(await fetchProduct("tok", 1)).toEqual(keyboard);
+    expect(lastCall(fetchMock).url).toBe("http://localhost:8000/products/1");
+    expect(lastCall(fetchMock).headers.get("authorization")).toBe("Bearer tok");
   });
 });
