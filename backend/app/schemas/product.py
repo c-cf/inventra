@@ -51,3 +51,13 @@ class StockAdjustment(BaseModel):
         if not value.strip():
             raise ValueError("Reason must not be blank")
         return value
+
+
+class StockMovementOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    change: int
+    reason: str
+    created_at: str
