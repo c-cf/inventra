@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.deps import CurrentUser, DbConn
 from app.repositories import orders
@@ -9,8 +11,14 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 
 @router.get("", response_model=list[OrderOut])
-def list_orders(conn: DbConn, _: CurrentUser, status: OrderStatus | None = None) -> list[OrderOut]:
-    return [OrderOut.model_validate(order) for order in orders.list_all(conn, status=status)]
+def list_orders(
+    conn: DbConn,
+    _: CurrentUser,
+    # Aliased so the parameter does not shadow fastapi's `status` module.
+    order_status: Annotated[OrderStatus | None, Query(alias="status")] = None,
+) -> list[OrderOut]:
+    found = orders.list_all(conn, status=order_status)
+    return [OrderOut.model_validate(order) for order in found]
 
 
 @router.get("/{order_id}", response_model=OrderOut)
