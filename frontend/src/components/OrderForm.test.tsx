@@ -159,4 +159,55 @@ describe("OrderForm", () => {
       expect(createOrder).not.toHaveBeenCalled();
     });
   });
+
+  describe("when the API call fails or is slow", () => {
+    async function submitValidOrder(user: ReturnType<typeof userEvent.setup>) {
+      await user.type(screen.getByLabelText("Customer"), "ACME Corp");
+      await fillLine(user, 1, "1", "2");
+      await user.click(screen.getByRole("button", { name: "Place order" }));
+    }
+
+    it("shows the backend's message", async () => {
+      vi.mocked(createOrder).mockRejectedValue(new ApiError(409, "Insufficient stock for KB-001"));
+      const user = renderForm();
+
+      await submitValidOrder(user);
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Insufficient stock for KB-001");
+      expect(onCreated).not.toHaveBeenCalled();
+    });
+
+    it("shows a generic message when the backend cannot be reached", async () => {
+      vi.mocked(createOrder).mockRejectedValue(new TypeError("Failed to fetch"));
+      const user = renderForm();
+
+      await submitValidOrder(user);
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Could not reach the server. Is the backend running?",
+      );
+    });
+
+    it("hands a rejected token to onUnauthorized", async () => {
+      vi.mocked(createOrder).mockRejectedValue(new ApiError(401, "Not authenticated"));
+      const user = renderForm();
+
+      await submitValidOrder(user);
+
+      await waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("disables the submit button while the order is being placed", async () => {
+      let resolve: (order: Order) => void = () => {};
+      vi.mocked(createOrder).mockReturnValue(new Promise((done) => (resolve = done)));
+      const user = renderForm();
+
+      await submitValidOrder(user);
+
+      expect(screen.getByRole("button", { name: "Placing¡K" })).toBeDisabled();
+      resolve(created);
+      await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created));
+    });
+  });
 });
