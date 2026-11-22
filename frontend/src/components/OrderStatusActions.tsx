@@ -1,6 +1,8 @@
 "use client";
 
-import { type Order, type OrderStatus, updateOrderStatus } from "@/lib/api";
+import { useState } from "react";
+
+import { ApiError, type Order, type OrderStatus, updateOrderStatus } from "@/lib/api";
 
 type OrderStatusActionsProps = {
   token: string;
@@ -25,12 +27,43 @@ const ACTIONS: Record<OrderStatus, Action[]> = {
   cancelled: [],
 };
 
-export function OrderStatusActions({ token, order, onChanged }: Readonly<OrderStatusActionsProps>) {
+export function OrderStatusActions({
+  token,
+  order,
+  onChanged,
+  onUnauthorized,
+}: Readonly<OrderStatusActionsProps>) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const actions = ACTIONS[order.status];
 
   async function run(action: Action) {
-    const updated = await updateOrderStatus(token, order.id, action.target);
-    onChanged(updated);
+    if (
+      action.target === "cancelled" &&
+      !window.confirm(
+        `Cancel order #${order.id}? Its items go back into stock and this cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setError(null);
+    setPending(true);
+    try {
+      onChanged(await updateOrderStatus(token, order.id, action.target));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        onUnauthorized();
+        return;
+      }
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not reach the server. Is the backend running?",
+      );
+    } finally {
+      setPending(false);
+    }
   }
 
   if (actions.length === 0) {
@@ -38,21 +71,29 @@ export function OrderStatusActions({ token, order, onChanged }: Readonly<OrderSt
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {actions.map((action) => (
-        <button
-          key={action.target}
-          type="button"
-          onClick={() => void run(action)}
-          className={
-            action.target === "cancelled"
-              ? "rounded-md border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
-              : "rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-          }
-        >
-          {action.label}
-        </button>
-      ))}
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-3">
+        {actions.map((action) => (
+          <button
+            key={action.target}
+            type="button"
+            disabled={pending}
+            onClick={() => void run(action)}
+            className={
+              action.target === "cancelled"
+                ? "rounded-md border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                : "rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+            }
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
