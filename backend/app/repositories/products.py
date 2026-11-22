@@ -59,7 +59,7 @@ def update(conn: sqlite3.Connection, product_id: int, **fields) -> Product | Non
                 (*fields.values(), product_id),
             )
         except sqlite3.IntegrityError as exc:
-            if "products.sku" in str(exc):
+            if "UNIQUE constraint failed: products.sku" in str(exc):
                 raise DuplicateSkuError(fields["sku"]) from exc
             raise
         conn.commit()
