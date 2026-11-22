@@ -103,7 +103,7 @@ passwords, so it is for local use. To change settings, copy
 ### Without Docker
 
 Prerequisites: [uv](https://docs.astral.sh/uv/) (it downloads Python 3.12 for
-you) and Node.js 22+ with npm.
+you) and Node.js 22.22+ or 24.15+ with npm.
 
 ```bash
 cd backend
@@ -128,22 +128,32 @@ and `NEXT_PUBLIC_API_URL`, so the session cookie is shared between them.
 
 ## Running the tests
 
+Backend (from `backend/`): unit and API integration tests, with coverage
+(fails under 90%):
+
 ```bash
-# backend: unit + API integration tests, with coverage (fails under 90%)
-cd backend && uv run pytest --cov
-cd backend && uv run ruff check . && uv run ruff format --check .
-
-# frontend: unit + component tests, with coverage floors (vitest.config.mts)
-cd frontend && npm run test:coverage
-cd frontend && npm run test:watch      # re-runs on save while you work
-cd frontend && npm run lint && npm run typecheck
-
-# end-to-end: starts a seeded API on :8000 and the production UI on :3000
-cd frontend && npx playwright install chromium   # once
-cd frontend && npm run test:e2e
+uv run pytest --cov
+uv run ruff check . && uv run ruff format --check .
 ```
 
-CI runs four jobs on every push and pull request: backend (ruff + pytest +
+Frontend (from `frontend/`): unit and component tests with coverage floors
+(`vitest.config.mts`), lint and types:
+
+```bash
+npm run test:coverage
+npm run test:watch                 # re-runs on save while you work
+npm run lint && npm run typecheck
+```
+
+End-to-end (from `frontend/`): starts a seeded API on :8000 and the production
+UI on :3000, so stop any dev servers on those ports first:
+
+```bash
+npx playwright install chromium    # once
+npm run test:e2e
+```
+
+CI runs four jobs on pushes to `main` and on pull requests: backend (ruff + pytest +
 coverage), frontend (eslint + tsc + vitest + coverage + `next build`), docker
 (builds the compose stack and smoke tests it, including the browser → API path)
 and e2e (Playwright). Coverage tables appear in the job summary and the HTML
@@ -158,7 +168,7 @@ clients).
 | Method | Path                         | Who    | Description                                                                   |
 | ------ | ---------------------------- | ------ | ----------------------------------------------------------------------------- |
 | GET    | `/health`                    | –      | Liveness check                                                                |
-| POST   | `/auth/login`                | –      | `{username, password}` → sets the session cookie and returns `{access_token}` |
+| POST   | `/auth/login`                | –      | `{username, password}` → sets the session cookie, returns `{access_token, token_type}`; 429 + `Retry-After` when throttled |
 | POST   | `/auth/logout`               | –      | Clears the session cookie                                                     |
 | GET    | `/auth/me`                   | any    | Current user `{id, username, role}`                                           |
 | POST   | `/auth/password`             | any    | `{current_password, new_password}` → 204                                      |
@@ -188,8 +198,9 @@ clients).
   `--forwarded-allow-ips=<proxy address>` so it sees real client addresses.
 - Known limitations: logging out or changing a password does not revoke tokens
   already issued (they expire after `INVENTRA_TOKEN_TTL_MINUTES`); the throttle
-  is in-process; the proxy only checks that the cookie exists (the API validates
-  it), and relies on the UI and API sharing a host name.
+  is in-process and does not cover `POST /auth/password`; the proxy only checks
+  that the cookie exists (the API validates it), and relies on the UI and API
+  sharing a host name.
 
 ## TDD workflow and commit conventions
 
