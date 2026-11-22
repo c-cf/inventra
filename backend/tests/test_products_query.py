@@ -140,9 +140,7 @@ HUGE = 10**20  # larger than SQLite's 64-bit INTEGER
         ("get", "/products", {"offset": HUGE}),
     ],
 )
-def test_product_endpoints_reject_out_of_range_integers(
-    client, auth_headers, method, path, body
-):
+def test_product_endpoints_reject_out_of_range_integers(client, auth_headers, method, path, body):
     if method == "get":
         response = client.get(path, params=body, headers=auth_headers)
     else:
@@ -155,11 +153,22 @@ def test_product_endpoints_reject_out_of_range_integers(
     "payload",
     [
         {"sku": "BIG-1", "name": "Big", "price": 1, "quantity": HUGE},
-        {"sku": "BIG-2", "name": "Big", "price": 1e309},
+        {"sku": "BIG-2", "name": "Big", "price": 2_000_000_000},
     ],
 )
 def test_create_product_rejects_out_of_range_numbers(client, auth_headers, payload):
     assert client.post("/products", json=payload, headers=auth_headers).status_code == 422
+
+
+def test_create_product_rejects_an_infinite_price(client, auth_headers):
+    # httpx refuses to serialize inf, so send the overflowing literal as raw JSON.
+    response = client.post(
+        "/products",
+        content=b'{"sku": "INF-1", "name": "Inf", "price": 1e309}',
+        headers={**auth_headers, "Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_adjust_rejects_an_out_of_range_change(client, auth_headers, catalogue):
