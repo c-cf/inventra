@@ -7,7 +7,7 @@ on:
 
 jobs:
   backend:
-    name: Backend (ruff + pytest)
+    name: Backend (ruff + pytest + coverage)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,10 +21,18 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run pytest
+      # Fails the job when coverage drops below fail_under in pyproject.toml.
+      - run: uv run pytest --cov --cov-report=term-missing --cov-report=html --cov-report=markdown-append:$GITHUB_STEP_SUMMARY
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/htmlcov
+          if-no-files-found: ignore
 
   frontend:
-    name: Frontend (eslint + tsc + vitest + build)
+    name: Frontend (eslint + tsc + vitest + coverage + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,5 +47,26 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      # Fails the job when coverage drops below the thresholds in vitest.config.mts.
+      - run: npm run test:coverage
+      - name: Add frontend coverage to the job summary
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            const file = "coverage/coverage-summary.json";
+            if (!fs.existsSync(file)) process.exit(0);
+            const t = JSON.parse(fs.readFileSync(file, "utf8")).total;
+            const row = (k) => `| ${k} | ${t[k].pct}% | ${t[k].covered}/${t[k].total} |`;
+            const lines = ["### Frontend coverage", "", "| Metric | % | Covered |", "| --- | --- | --- |",
+              ...["statements", "branches", "functions", "lines"].map(row)];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+          '
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
       - run: npm run build
