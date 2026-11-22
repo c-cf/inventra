@@ -3,6 +3,10 @@ import sqlite3
 from app.models import User
 
 
+class DuplicateUsernameError(Exception):
+    """Raised when creating a user whose username is taken."""
+
+
 def _to_user(row: sqlite3.Row) -> User:
     return User(
         id=row["id"],
@@ -16,10 +20,15 @@ def _to_user(row: sqlite3.Row) -> User:
 def create(
     conn: sqlite3.Connection, *, username: str, password_hash: str, role: str = "staff"
 ) -> User:
-    cursor = conn.execute(
-        "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-        (username, password_hash, role),
-    )
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, password_hash, role),
+        )
+    except sqlite3.IntegrityError as exc:
+        if "UNIQUE constraint failed: users.username" in str(exc):
+            raise DuplicateUsernameError(username) from exc
+        raise
     conn.commit()
     user = get_by_id(conn, cursor.lastrowid)
     assert user is not None

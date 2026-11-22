@@ -16,6 +16,10 @@ def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
 
 
+# bcrypt only reads 72 bytes; bcrypt>=5 raises instead of silently truncating.
+BCRYPT_MAX_BYTES = 72
+
+
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
