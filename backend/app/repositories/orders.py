@@ -70,5 +70,14 @@ def list_all(conn: sqlite3.Connection) -> list[Order]:
     return [_to_order(conn, row) for row in rows]
 
 
-def update_status(conn: sqlite3.Connection, order_id: int, status: str) -> None:
-    conn.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
+def update_status(conn: sqlite3.Connection, order_id: int, *, current: str, new: str) -> bool:
+    """Compare-and-set the status. False when the order is no longer in `current`."""
+    cursor = conn.execute(
+        "UPDATE orders SET status = ? WHERE id = ? AND status = ?", (new, order_id, current)
+    )
+    return cursor.rowcount == 1
+
+
+def get_status(conn: sqlite3.Connection, order_id: int) -> str | None:
+    row = conn.execute("SELECT status FROM orders WHERE id = ?", (order_id,)).fetchone()
+    return row["status"] if row else None

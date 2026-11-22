@@ -75,7 +75,11 @@ def change_status(conn: sqlite3.Connection, order_id: int, new_status: str) -> O
     if new_status not in ALLOWED_TRANSITIONS[order.status]:
         raise InvalidStatusTransitionError(order.status, new_status)
     try:
-        orders.update_status(conn, order_id, new_status)
+        # Another request may have moved the order since we read it.
+        if not orders.update_status(conn, order_id, current=order.status, new=new_status):
+            raise InvalidStatusTransitionError(
+                orders.get_status(conn, order_id) or order.status, new_status
+            )
         if new_status == "cancelled":
             _restock(conn, order)
     except Exception:
