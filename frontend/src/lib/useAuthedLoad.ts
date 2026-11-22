@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
 import { ApiError, fetchMe, type User } from "@/lib/api";
+import { hardNavigate } from "@/lib/hardNavigate";
 
 export type AuthedLoadState<T> =
   | { status: "loading" }
@@ -16,13 +16,14 @@ export type AuthedLoadState<T> =
  * those visitors are sent to /login.
  */
 export function useAuthedLoad<T>(loader: () => Promise<T>) {
-  const router = useRouter();
   const [state, setState] = useState<AuthedLoadState<T>>({ status: "loading" });
   const load = useEffectEvent(loader);
 
+  // A full page load, not router.replace: Next keeps visited pages mounted, and a
+  // rejected session must not leave one user's forms behind for the next (#24).
   const signOut = useCallback(() => {
-    router.replace("/login");
-  }, [router]);
+    hardNavigate("/login");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +39,7 @@ export function useAuthedLoad<T>(loader: () => Promise<T>) {
         result.status === "rejected" ? [result.reason as unknown] : [],
       );
       if (errors.some((error) => error instanceof ApiError && error.status === 401)) {
-        router.replace("/login");
+        hardNavigate("/login");
         return;
       }
       const [error] = errors;
@@ -51,7 +52,7 @@ export function useAuthedLoad<T>(loader: () => Promise<T>) {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   const setData = useCallback((update: (data: T) => T) => {
     setState((prev) => (prev.status === "ready" ? { ...prev, data: update(prev.data) } : prev));
