@@ -45,6 +45,14 @@ def get_by_username(conn: sqlite3.Connection, username: str) -> User | None:
     return _to_user(row) if row else None
 
 
+def get_by_username_ignoring_case(conn: sqlite3.Connection, username: str) -> User | None:
+    """The user whose name matches apart from letter case (usernames must differ by more)."""
+    row = conn.execute(
+        "SELECT * FROM users WHERE username = ? COLLATE NOCASE ORDER BY id", (username,)
+    ).fetchone()
+    return _to_user(row) if row else None
+
+
 def list_all(conn: sqlite3.Connection) -> list[User]:
     rows = conn.execute("SELECT * FROM users ORDER BY id").fetchall()
     return [_to_user(row) for row in rows]
