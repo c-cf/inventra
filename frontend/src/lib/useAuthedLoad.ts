@@ -27,12 +27,32 @@ export function useAuthedLoad<T>(loader: () => Promise<T>) {
 
   useEffect(() => {
     let cancelled = false;
+    const userRequest = fetchMe();
+    const dataRequest = load();
+
+    // Next shows a kept page again by running this effect again. A page already showing
+    // its data gets the reloaded data as soon as it arrives: its loader has just checked
+    // its filters, and waiting for fetchMe would undo whatever the page did meanwhile
+    // (#40). The first load still waits for both, below.
+    void dataRequest.then(
+      (data) => {
+        if (cancelled) return;
+        setState((prev) => (prev.status === "ready" ? { ...prev, data } : prev));
+      },
+      () => {}, // failures are handled below, together with the session
+    );
+
     // allSettled, not all: a rejected session must win over a page error that
     // happens to settle first (e.g. a malformed id rejected without a request).
-    void Promise.allSettled([fetchMe(), load()]).then(([user, data]) => {
+    void Promise.allSettled([userRequest, dataRequest]).then(([user, data]) => {
       if (cancelled) return;
       if (user.status === "fulfilled" && data.status === "fulfilled") {
-        setState({ status: "ready", user: user.value, data: data.value });
+        // Already showing: the data went on screen when it arrived; refresh only the user.
+        setState((prev) =>
+          prev.status === "ready"
+            ? { ...prev, user: user.value }
+            : { status: "ready", user: user.value, data: data.value },
+        );
         return;
       }
       const errors = [user, data].flatMap((result) =>
