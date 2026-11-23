@@ -51,3 +51,44 @@ def test_seed_skips_an_account_whose_username_exists_in_another_case(db):
 
     assert users.get_by_username(db, ADMIN_USERNAME) is None
     assert users.get_by_username(db, STAFF_USERNAME) is not None
+
+
+def test_main_reports_the_accounts_and_products_it_created(db, capsys):
+    from app.seed import STAFF_USERNAME, main
+
+    main()
+
+    out = capsys.readouterr().out
+    assert f"Created user '{ADMIN_USERNAME}' (admin)." in out
+    assert f"Created user '{STAFF_USERNAME}' (staff)." in out
+    assert f"Added {len(SAMPLE_PRODUCTS)} of {len(SAMPLE_PRODUCTS)} sample products." in out
+
+
+def test_main_reports_what_was_already_there_on_a_second_run(db, capsys):
+    from app.seed import STAFF_USERNAME, main
+
+    main()
+    capsys.readouterr()
+    main()
+
+    out = capsys.readouterr().out
+    assert f"Kept user '{ADMIN_USERNAME}': it already exists." in out
+    assert f"Kept user '{STAFF_USERNAME}': it already exists." in out
+    assert f"Added 0 of {len(SAMPLE_PRODUCTS)} sample products." in out
+    assert "Created user" not in out
+
+
+def test_main_says_which_account_it_skipped_and_why(db, capsys):
+    from app.seed import STAFF_USERNAME, main
+
+    users.create(db, username=ADMIN_USERNAME.upper(), password_hash="x", role="admin")
+
+    main()
+
+    out = capsys.readouterr().out
+    assert (
+        f"Skipped user '{ADMIN_USERNAME}': '{ADMIN_USERNAME.upper()}' already exists "
+        "and usernames ignore letter case." in out
+    )
+    assert f"Created user '{STAFF_USERNAME}' (staff)." in out
+    assert f"Created user '{ADMIN_USERNAME}'" not in out
