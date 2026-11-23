@@ -4,7 +4,7 @@ import { Activity, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProductsPage from "@/app/products/page";
-import { fetchMe, fetchProducts, type Product, type ProductQuery } from "@/lib/api";
+import { fetchMe, fetchProducts, type Product, type ProductQuery, type User } from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -147,5 +147,21 @@ describe("ProductsPage when filters change while the reload is on its way (#35)"
 
     await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
     expect(fetchProducts).toHaveBeenLastCalledWith({ q: "mouse" });
+  });
+
+  it("keeps a search cleared after the reload's products but before its session check (#40)", async () => {
+    const { rerender, user } = await renderPage();
+    await user.type(screen.getByLabelText("Search products"), "mouse");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await waitFor(() => expect(listedSkus()).toEqual(["MS-001"]));
+    const session = deferred<User>();
+    vi.mocked(fetchMe).mockReturnValueOnce(session.promise);
+
+    await leaveAndComeBack(rerender); // its products for "mouse" come back at once
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]));
+    await act(async () => session.resolve({ id: 1, username: "alice", role: "admin" }));
+
+    expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]);
   });
 });
