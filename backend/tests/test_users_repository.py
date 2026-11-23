@@ -34,6 +34,15 @@ def test_get_by_username_returns_none_when_missing(conn):
     assert users.get_by_username(conn, "nobody") is None
 
 
+def test_get_by_username_ignoring_case_finds_the_name_in_any_case(conn):
+    created = users.create(conn, username="Carol", password_hash="hash")
+
+    assert users.get_by_username_ignoring_case(conn, "carol") == created
+    assert users.get_by_username_ignoring_case(conn, "CAROL") == created
+    assert users.get_by_username_ignoring_case(conn, "Carol") == created
+    assert users.get_by_username_ignoring_case(conn, "dave") is None
+
+
 def test_get_by_id(conn):
     created = users.create(conn, username="alice", password_hash="hash")
 

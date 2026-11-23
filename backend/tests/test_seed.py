@@ -62,6 +62,7 @@ def test_main_reports_the_accounts_and_products_it_created(db, capsys):
     assert f"Created user '{ADMIN_USERNAME}' (admin)." in out
     assert f"Created user '{STAFF_USERNAME}' (staff)." in out
     assert f"Added {len(SAMPLE_PRODUCTS)} of {len(SAMPLE_PRODUCTS)} sample products." in out
+    assert "Kept user" not in out and "Skipped user" not in out
 
 
 def test_main_reports_what_was_already_there_on_a_second_run(db, capsys):
@@ -92,3 +93,21 @@ def test_main_says_which_account_it_skipped_and_why(db, capsys):
     )
     assert f"Created user '{STAFF_USERNAME}' (staff)." in out
     assert f"Created user '{ADMIN_USERNAME}'" not in out
+
+
+def test_main_does_not_add_a_case_duplicate_to_a_database_from_before_27(db, capsys):
+    from app.seed import main
+
+    # Before #27 there was no case-insensitive index. With carol and CAROL in the table
+    # init_db cannot add it, so nothing in the database refuses a second "admin".
+    for index in ("users_username_nocase", "products_sku_nocase"):
+        db.execute(f"DROP INDEX IF EXISTS {index}")
+    db.commit()
+    for username in (ADMIN_USERNAME.upper(), "carol", "CAROL"):
+        users.create(db, username=username, password_hash="x", role="staff")
+
+    main()
+
+    out = capsys.readouterr().out
+    assert f"Skipped user '{ADMIN_USERNAME}': '{ADMIN_USERNAME.upper()}' already exists" in out
+    assert users.get_by_username(db, ADMIN_USERNAME) is None
