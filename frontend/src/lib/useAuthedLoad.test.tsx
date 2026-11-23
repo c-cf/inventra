@@ -109,6 +109,54 @@ describe("useAuthedLoad on a page shown again (#40)", () => {
   });
 });
 
+describe("useAuthedLoad when the user leaves again before the reload lands", () => {
+  async function leaveMidReloadAndComeBack() {
+    const firstVisit = deferred<string>();
+    const secondVisit = deferred<string>();
+    load.mockResolvedValueOnce("first load");
+    const { rerender } = render(page("visible"));
+    await screen.findByText("alice: first load");
+    load.mockReturnValueOnce(firstVisit.promise).mockReturnValueOnce(secondVisit.promise);
+    rerender(page("hidden"));
+    rerender(page("visible")); // reload for this visit is still out...
+    rerender(page("hidden")); // ...when the user leaves again
+    rerender(page("visible"));
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(3));
+    await act(async () => secondVisit.resolve("from the second visit"));
+    await screen.findByText("alice: from the second visit");
+    return firstVisit;
+  }
+
+  it("ignores data from a visit the user already left", async () => {
+    const firstVisit = await leaveMidReloadAndComeBack();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Change" }));
+
+    await act(async () => firstVisit.resolve("from the first visit"));
+
+    expect(screen.getByText("alice: changed on the page")).toBeInTheDocument();
+  });
+
+  it("ignores a failure from a visit the user already left", async () => {
+    const firstVisit = await leaveMidReloadAndComeBack();
+
+    await act(async () => firstVisit.reject(new ApiError(500, "Database unavailable")));
+
+    expect(screen.getByText("alice: from the second visit")).toBeInTheDocument();
+  });
+});
+
+describe("useAuthedLoad on a page shown again that fails", () => {
+  it("shows the error page for a failure other than a rejected session", async () => {
+    const reload = deferred<string>();
+    await renderShownAgain(Promise.resolve(alice), reload.promise);
+
+    await act(async () => reload.reject(new ApiError(500, "Database unavailable")));
+
+    expect(screen.getByText("error")).toBeInTheDocument();
+    expect(hardNavigate).not.toHaveBeenCalled();
+  });
+});
+
 describe("useAuthedLoad on the first load", () => {
   it("waits for both the session and the data", async () => {
     const session = deferred<User>();
