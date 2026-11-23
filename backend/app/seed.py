@@ -9,8 +9,10 @@ import sqlite3
 from dataclasses import dataclass
 
 from app.db import connect, init_db
+from app.models import User
 from app.repositories import products, users
 from app.repositories.products import DuplicateSkuError
+from app.repositories.users import DuplicateUsernameError
 from app.security import hash_password
 
 ADMIN_USERNAME = "admin"
@@ -36,7 +38,7 @@ class SeedReport:
     """What seed() did, so the script can say so instead of assuming it all went in."""
 
     created: tuple[tuple[str, str], ...]  # (username, role)
-    kept: tuple[str, ...]  # usernames that already existed
+    kept: tuple[tuple[str, str], ...]  # (username, the role it has now)
     skipped: tuple[tuple[str, str], ...]  # (username wanted, existing name in another case)
     products_added: int
 
@@ -44,18 +46,33 @@ class SeedReport:
 def seed(conn: sqlite3.Connection) -> SeedReport:
     init_db(conn)
     created: list[tuple[str, str]] = []
-    kept: list[str] = []
+    kept: list[tuple[str, str]] = []
     skipped: list[tuple[str, str]] = []
     for username, password, role in ACCOUNTS:
-        if users.get_by_username(conn, username) is not None:
-            kept.append(username)
-        elif (clash := users.get_by_username_ignoring_case(conn, username)) is not None:
-            skipped.append((username, clash.username))
+        found = _find_account(conn, username)
+        if found is None:
+            try:
+                users.create(
+                    conn, username=username, password_hash=hash_password(password), role=role
+                )
+            except DuplicateUsernameError:
+                found = _find_account(conn, username)  # another writer took it meanwhile
+            else:
+                created.append((username, role))
+                continue
+        if found is not None and found.username == username:
+            kept.append((username, found.role))
         else:
-            users.create(conn, username=username, password_hash=hash_password(password), role=role)
-            created.append((username, role))
+            skipped.append((username, found.username if found else username))
     products_added = sum(_add_product(conn, product) for product in SAMPLE_PRODUCTS)
     return SeedReport(tuple(created), tuple(kept), tuple(skipped), products_added)
+
+
+def _find_account(conn: sqlite3.Connection, username: str) -> User | None:
+    """The account with this exact name, else one whose name differs only in case."""
+    return users.get_by_username(conn, username) or users.get_by_username_ignoring_case(
+        conn, username
+    )
 
 
 def _add_product(conn: sqlite3.Connection, product: dict) -> bool:
@@ -69,7 +86,10 @@ def _add_product(conn: sqlite3.Connection, product: dict) -> bool:
 
 def describe(report: SeedReport) -> list[str]:
     lines = [f"Created user '{name}' ({role})." for name, role in report.created]
-    lines += [f"Kept user '{name}': it already exists." for name in report.kept]
+    lines += [
+        f"Kept user '{name}' ({role}): it already exists; its password was not changed."
+        for name, role in report.kept
+    ]
     lines += [
         f"Skipped user '{wanted}': '{existing}' already exists and usernames ignore letter case."
         for wanted, existing in report.skipped
