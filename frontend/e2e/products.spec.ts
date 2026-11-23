@@ -33,3 +33,44 @@ test("an unordered product can be deleted", async ({ page }) => {
   await expect(page).toHaveURL(/\/products$/);
   await expect(page.getByRole("link", { name: sku })).toHaveCount(0);
 });
+
+test("a product added while the list reloads stays listed (#43)", async ({ page }) => {
+  const sku = uniqueSku("E2E-RACE");
+  const isListRequest = (url: URL) => url.host === "localhost:8000" && url.pathname === "/products";
+  await page.getByRole("link", { name: "KB-001" }).click();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText("KB-001");
+
+  // Coming back reloads the list. Let the API answer that reload right away, before the
+  // product exists, but hand the answer to the page only once the product was added.
+  let releaseList: () => void = () => {};
+  const listHeld = new Promise<void>((done) => (releaseList = done));
+  let markServed: () => void = () => {};
+  const staleServed = new Promise<void>((done) => (markServed = done));
+  let holding = true;
+  await page.route(isListRequest, async (route) => {
+    if (route.request().method() !== "GET" || !holding) return route.continue();
+    holding = false; // only the come-back reload; asking again goes straight through
+    const answer = await route.fetch();
+    markServed();
+    await listHeld;
+    await route.fulfill({ response: answer });
+  });
+  const staleDelivered = page.waitForResponse(
+    (response) => isListRequest(new URL(response.url())) && response.request().method() === "GET",
+  );
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Products" }).click();
+  await staleServed;
+
+  await page.getByRole("textbox", { name: "SKU", exact: true }).fill(sku);
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("E2E Race Widget");
+  await page.getByRole("spinbutton", { name: "Price", exact: true }).fill("7");
+  await page.getByRole("spinbutton", { name: "Quantity", exact: true }).fill("2");
+  await page.getByRole("button", { name: "Add product" }).click();
+  await expect(page.getByRole("link", { name: sku })).toBeVisible();
+  releaseList();
+  await (await staleDelivered).finished();
+  // Checking that something does not happen: give the late answer time to be applied.
+  await page.waitForTimeout(500);
+
+  await expect(page.getByRole("link", { name: sku })).toBeVisible();
+});

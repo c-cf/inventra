@@ -1,16 +1,27 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Activity, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProductsPage from "@/app/products/page";
-import { fetchMe, fetchProducts, type Product, type ProductQuery, type User } from "@/lib/api";
+import {
+  adjustStock,
+  createProduct,
+  fetchMe,
+  fetchProducts,
+  type Product,
+  type ProductInput,
+  type ProductQuery,
+  type User,
+} from "@/lib/api";
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   fetchMe: vi.fn(),
   fetchProducts: vi.fn(),
   fetchStockMovements: vi.fn(),
+  createProduct: vi.fn(),
+  adjustStock: vi.fn(),
 }));
 
 function product(id: number, sku: string, name: string, quantity: number): Product {
@@ -21,11 +32,12 @@ const keyboard = product(1, "KB-001", "Mechanical Keyboard", 25);
 const mouse = product(2, "MS-001", "Wireless Mouse", 37);
 const monitor = product(3, "MN-027", "27-inch Monitor", 6);
 const catalog = [keyboard, mouse, monitor];
+let stock: Product[] = catalog; // what the API holds now; creates and adjustments change it
 
 /** Answers like the API: quantity under `below` and name or SKU containing `q`. */
 async function serveProducts({ below, q = "" }: ProductQuery = {}): Promise<Product[]> {
   const needle = q.toLowerCase();
-  return catalog.filter(
+  return stock.filter(
     (p) =>
       (below === undefined || p.quantity < below) &&
       (p.name.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)),
@@ -40,6 +52,22 @@ function page(mode: "visible" | "hidden") {
       <ProductsPage />
     </Activity>
   );
+}
+
+async function serveCreate({ sku, name, price, quantity }: ProductInput): Promise<Product> {
+  const created = { id: stock.length + 1, sku, name, price, quantity, created_at: "2026-11-23" };
+  stock = [...stock, created];
+  return created;
+}
+
+async function serveAdjust(productId: number, change: number): Promise<Product> {
+  stock = stock.map((p) => (p.id === productId ? { ...p, quantity: p.quantity + change } : p));
+  return stock.find((p) => p.id === productId) as Product;
+}
+
+function quantityOf(sku: string): string {
+  const row = screen.getByRole("link", { name: sku }).closest("tr") as HTMLElement;
+  return within(row).getAllByRole("cell")[3].textContent ?? "";
 }
 
 function listedSkus(): string[] {
@@ -60,8 +88,11 @@ async function leaveAndComeBack(rerender: (ui: ReactNode) => void) {
 }
 
 beforeEach(() => {
+  stock = catalog;
   vi.mocked(fetchMe).mockReset().mockResolvedValue({ id: 1, username: "alice", role: "admin" });
   vi.mocked(fetchProducts).mockReset().mockImplementation(serveProducts);
+  vi.mocked(createProduct).mockReset().mockImplementation(serveCreate);
+  vi.mocked(adjustStock).mockReset().mockImplementation(serveAdjust);
 });
 
 describe("ProductsPage when the user comes back to it (#35)", () => {
@@ -163,5 +194,45 @@ describe("ProductsPage when filters change while the reload is on its way (#35)"
     await act(async () => session.resolve({ id: 1, username: "alice", role: "admin" }));
 
     expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027"]);
+  });
+});
+
+describe("ProductsPage when the user changes the list while the reload is out (#43)", () => {
+  it("keeps a product created before the reload lands", async () => {
+    const { rerender, user } = await renderPage();
+    const reload = deferred<Product[]>();
+    vi.mocked(fetchProducts).mockReturnValueOnce(reload.promise);
+    const answerFromBefore = await serveProducts();
+
+    await leaveAndComeBack(rerender);
+    await user.type(screen.getByLabelText(/^sku$/i), "HB-001");
+    await user.type(screen.getByLabelText(/^name$/i), "USB Hub");
+    await user.type(screen.getByLabelText(/^price$/i), "10");
+    await user.click(screen.getByRole("button", { name: /add product/i }));
+    await waitFor(() => expect(listedSkus()).toContain("HB-001"));
+    await act(async () => reload.resolve(answerFromBefore)); // served before the create
+
+    expect(listedSkus()).toContain("HB-001");
+    await waitFor(() => expect(fetchProducts).toHaveBeenCalledTimes(3)); // load, reload, again
+    await waitFor(() => expect(listedSkus()).toEqual(["KB-001", "MS-001", "MN-027", "HB-001"]));
+  });
+
+  it("keeps a stock adjustment made before the reload lands", async () => {
+    const { rerender, user } = await renderPage();
+    const reload = deferred<Product[]>();
+    vi.mocked(fetchProducts).mockReturnValueOnce(reload.promise);
+    const answerFromBefore = await serveProducts();
+
+    await leaveAndComeBack(rerender);
+    await user.selectOptions(screen.getByLabelText("Adjust product"), "1");
+    await user.type(screen.getByLabelText("Stock change"), "5");
+    await user.type(screen.getByLabelText("Adjustment reason"), "restock");
+    await user.click(screen.getByRole("button", { name: "Adjust Stock" }));
+    await screen.findByText("Mechanical Keyboard now has 30 in stock.");
+    await act(async () => reload.resolve(answerFromBefore)); // still says 25
+
+    expect(quantityOf("KB-001")).toBe("30");
+    await waitFor(() => expect(fetchProducts).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(quantityOf("KB-001")).toBe("30"));
   });
 });
