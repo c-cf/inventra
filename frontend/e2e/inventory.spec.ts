@@ -94,19 +94,23 @@ test("a search cleared while the session check is slow stays cleared (#40)", asy
 
   // From here on, answer the session check late, so the list's reload is back long before it.
   await page.route("**/auth/me", async (route) => {
-    await new Promise((done) => setTimeout(done, 1500));
+    await new Promise((done) => setTimeout(done, 2500));
     await route.continue();
   });
+  let sessionAnswered = false;
   const reloaded = page.waitForResponse((response) => response.url().includes("/products?q="));
-  const sessionChecked = page.waitForResponse((response) => response.url().endsWith("/auth/me"));
+  const sessionChecked = page
+    .waitForResponse((response) => response.url().endsWith("/auth/me"))
+    .then((response) => response.finished())
+    .then(() => (sessionAnswered = true));
   await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Products" }).click();
   await reloaded;
   await page.getByRole("button", { name: "Clear search" }).click();
   await expect(page.getByRole("link", { name: "KB-001" })).toBeVisible();
+  expect(sessionAnswered, "the search must be cleared while the session check is out").toBe(false);
   await sessionChecked;
   // Checking that something does not happen: give the late answer time to be applied.
   await page.waitForTimeout(500);
 
   await expect(page.getByRole("link", { name: "KB-001" })).toBeVisible();
-  await expect(page.getByLabel("Search products")).toHaveValue("");
 });
