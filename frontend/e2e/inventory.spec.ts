@@ -82,3 +82,31 @@ test("the search and low-stock filter still apply after coming back from a produ
   await expect(page.getByLabel("Search products")).toHaveValue(tag.toLowerCase());
   await expect(page.getByLabel("Low stock threshold")).toHaveValue("5");
 });
+
+test("a search cleared while the session check is slow stays cleared (#40)", async ({ page }) => {
+  const tag = uniqueSku("SLOW");
+  await addProduct(page, { sku: `${tag}-A`, name: `Slow-session lamp ${tag}`, price: "20", quantity: "3" });
+  await page.getByLabel("Search products").fill(tag.toLowerCase());
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("link", { name: "KB-001" })).toHaveCount(0);
+  await page.getByRole("link", { name: `${tag}-A` }).click();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(`${tag}-A`);
+
+  // From here on, answer the session check late, so the list's reload is back long before it.
+  await page.route("**/auth/me", async (route) => {
+    await new Promise((done) => setTimeout(done, 1500));
+    await route.continue();
+  });
+  const reloaded = page.waitForResponse((response) => response.url().includes("/products?q="));
+  const sessionChecked = page.waitForResponse((response) => response.url().endsWith("/auth/me"));
+  await page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("link", { name: "Products" }).click();
+  await reloaded;
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(page.getByRole("link", { name: "KB-001" })).toBeVisible();
+  await sessionChecked;
+  // Checking that something does not happen: give the late answer time to be applied.
+  await page.waitForTimeout(500);
+
+  await expect(page.getByRole("link", { name: "KB-001" })).toBeVisible();
+  await expect(page.getByLabel("Search products")).toHaveValue("");
+});
