@@ -7,7 +7,6 @@ import { AppHeader } from "@/components/AppHeader";
 import { OrderTable } from "@/components/OrderTable";
 import { PageStatus } from "@/components/PageStatus";
 import { ApiError, fetchOrders, ORDER_STATUSES, type OrderStatus } from "@/lib/api";
-import { loadForLatest } from "@/lib/loadForLatest";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 export default function OrdersPage() {
@@ -16,11 +15,9 @@ export default function OrdersPage() {
   const appliedStatus = useRef<OrderStatus | undefined>(undefined);
 
   // Next keeps this page mounted while hidden and reloads it when the user comes back.
-  // Reload with the applied status, and again if it changed while the request was out,
-  // so the list never falls back to another status than the select shows (#37).
-  const { state, setData, signOut } = useAuthedLoad(() =>
-    loadForLatest(appliedStatus, fetchOrders),
-  );
+  // Reload with the applied status (#37); a filter applied while that request is out
+  // changes the data, so useAuthedLoad asks again (#43).
+  const { state, setData, signOut } = useAuthedLoad(() => fetchOrders(appliedStatus.current));
   const [statusFilter, setStatusFilter] = useState("");
   const [filterError, setFilterError] = useState("");
   const [filtering, setFiltering] = useState(false);

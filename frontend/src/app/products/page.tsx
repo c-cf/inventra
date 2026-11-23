@@ -10,7 +10,6 @@ import { ProductTable } from "@/components/ProductTable";
 import { StockAdjustmentForm } from "@/components/StockAdjustmentForm";
 import { StockMovementHistory } from "@/components/StockMovementHistory";
 import { ApiError, fetchProducts, type Product, type ProductQuery } from "@/lib/api";
-import { loadForLatest } from "@/lib/loadForLatest";
 import { useAuthedLoad } from "@/lib/useAuthedLoad";
 
 type Filters = { below: number | null; q: string };
@@ -38,13 +37,13 @@ export default function ProductsPage() {
   const activeRef = useRef<Filters>(NO_FILTERS);
 
   // Next keeps this page mounted while hidden and reloads it when the user comes back.
-  // Reload with the applied filters, and again if they changed while the request was out,
-  // so the list never falls back to an older search or threshold (#35).
+  // Reload with the applied filters (#35); a filter, product or adjustment applied while
+  // that request is out changes the data, so useAuthedLoad asks again (#43).
   const {
     state,
     setData: setProducts,
     signOut: handleUnauthorized,
-  } = useAuthedLoad(() => loadForLatest(activeRef, (filters) => fetchProducts(toQuery(filters))));
+  } = useAuthedLoad(() => fetchProducts(toQuery(activeRef.current)));
 
   const [threshold, setThreshold] = useState("");
   const [searchText, setSearchText] = useState("");
