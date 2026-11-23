@@ -109,6 +109,42 @@ describe("useAuthedLoad on a page shown again (#40)", () => {
   });
 });
 
+describe("useAuthedLoad when the page changes its data while the reload is out (#43)", () => {
+  it("asks again, so the answer includes the change", async () => {
+    const reload = deferred<string>();
+    await renderShownAgain(Promise.resolve(alice), reload.promise);
+    load.mockResolvedValueOnce("fresh, with the change");
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Change" }));
+    await act(async () => reload.resolve("from before the change"));
+
+    expect(await screen.findByText("alice: fresh, with the change")).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps the change on screen until the new answer lands", async () => {
+    const reload = deferred<string>();
+    const again = deferred<string>();
+    await renderShownAgain(Promise.resolve(alice), reload.promise);
+    load.mockReturnValueOnce(again.promise);
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Change" }));
+    await act(async () => reload.resolve("from before the change"));
+
+    expect(screen.getByText("alice: changed on the page")).toBeInTheDocument();
+  });
+
+  it("asks only once when the page did not change meanwhile", async () => {
+    const reload = deferred<string>();
+    await renderShownAgain(Promise.resolve(alice), reload.promise);
+
+    await act(async () => reload.resolve("reloaded"));
+
+    expect(screen.getByText("alice: reloaded")).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("useAuthedLoad when the user leaves again before the reload lands", () => {
   async function leaveMidReloadAndComeBack() {
     const firstVisit = deferred<string>();
@@ -134,6 +170,7 @@ describe("useAuthedLoad when the user leaves again before the reload lands", () 
     await act(async () => firstVisit.resolve("from the first visit"));
 
     expect(screen.getByText("alice: changed on the page")).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(3); // a visit already left does not ask again
   });
 
   it("ignores a failure from a visit the user already left", async () => {
